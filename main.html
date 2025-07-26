@@ -1,0 +1,656 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>智慧提詞機 - 主顯示器</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: "Microsoft JhengHei", "PingFang TC", "Helvetica Neue", Arial, sans-serif;
+            overflow: hidden;
+            height: 100vh;
+            background: #000;
+            color: #fff;
+            position: relative;
+        }
+        
+        /* 提詞機容器 */
+        .teleprompter-container {
+            width: 100%;
+            height: 100vh;
+            overflow: hidden;
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .teleprompter-content {
+            position: absolute;
+            width: 100%;
+            text-align: center;
+            line-height: 1.6;
+            padding: 2rem;
+            transform: translateY(100vh);
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+        
+        /* 10個字體大小等級 */
+        .font-size-1 { font-size: 3vh; }
+        .font-size-2 { font-size: 4vh; }
+        .font-size-3 { font-size: 5vh; }
+        .font-size-4 { font-size: 6.5vh; }
+        .font-size-5 { font-size: 8vh; }
+        .font-size-6 { font-size: 10vh; }
+        .font-size-7 { font-size: 13vh; }
+        .font-size-8 { font-size: 16vh; }
+        .font-size-9 { font-size: 20vh; }
+        .font-size-10 { font-size: 25vh; }
+        
+        /* 鏡像效果 */
+        .mirror-horizontal { transform: scaleX(-1); }
+        .mirror-vertical { transform: scaleY(-1); }
+        .mirror-both { transform: scale(-1, -1); }
+        
+        /* 狀態顯示 */
+        .status-bar {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 10px 15px;
+            border-radius: 8px;
+            font-size: 12px;
+            z-index: 1000;
+        }
+        
+        .room-id-display {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 10px 15px;
+            border-radius: 8px;
+            font-family: monospace;
+            z-index: 1000;
+        }
+        
+        .connection-status {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 10px 15px;
+            border-radius: 8px;
+            font-size: 12px;
+            z-index: 1000;
+        }
+        
+        /* 快捷鍵提示 */
+        .help-overlay {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.9);
+            padding: 30px;
+            border-radius: 15px;
+            text-align: center;
+            display: none;
+            z-index: 2000;
+        }
+        
+        .help-overlay.show {
+            display: block;
+        }
+        
+        /* 行高亮樣式 */
+        .current-line-highlight {
+            background-color: rgba(255, 255, 0, 0.3);
+            padding: 0.2em;
+            border-radius: 0.3em;
+        }
+        
+        /* 響應式設計 */
+        @media (max-width: 768px) {
+            .teleprompter-content {
+                padding: 1rem;
+            }
+            
+            .status-bar, .room-id-display, .connection-status {
+                font-size: 10px;
+                padding: 8px 12px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- 狀態列 -->
+    <div class="status-bar">
+        <div>📺 主顯示器</div>
+        <div>速度: <span id="statusSpeed">1.0</span>x | 字體: <span id="statusFont">5</span> | 鏡像: <span id="statusMirror">正常</span></div>
+    </div>
+    
+    <!-- 房間ID顯示 -->
+    <div class="room-id-display">
+        🏠 房間: <span id="currentRoomId">未連接</span>
+    </div>
+    
+    <!-- 連接狀態 -->
+    <div class="connection-status">
+        <div id="connectionStatus">🔴 離線</div>
+        <div>設備: <span id="deviceCount">0</span></div>
+    </div>
+    
+    <!-- 主顯示容器 -->
+    <div class="teleprompter-container">
+        <div class="teleprompter-content font-size-5" id="content">
+            歡迎使用智慧提詞機<br>
+            請開啟控制面板設定文稿內容<br><br>
+            
+            快捷鍵：<br>
+            • 空白鍵：播放/暫停<br>
+            • ESC：顯示設定<br>
+            • ↑↓：調整速度<br>
+            • ←→：調整字體<br>
+        </div>
+    </div>
+    
+    <!-- 快捷鍵說明 -->
+    <div class="help-overlay" id="helpOverlay">
+        <h3>⌨️ 快捷鍵說明</h3>
+        <div style="margin: 20px 0; text-align: left;">
+            <div>空白鍵：播放/暫停</div>
+            <div>ESC：顯示/隱藏此說明</div>
+            <div>↑↓：調整滾動速度</div>
+            <div>←→：調整字體大小</div>
+            <div>S：停止滾動</div>
+            <div>F：全螢幕模式</div>
+        </div>
+        <div style="margin-top: 20px;">
+            <button onclick="hideHelp()" style="padding: 10px 20px; background: #4CAF50; color: white; border: none; border-radius: 5px; cursor: pointer;">
+                關閉
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // 全域變數
+        let peer = null;
+        let connections = new Map();
+        let isHost = false;
+        let roomId = '';
+        let isConnected = false;
+        
+        // 提詞機設定
+        let isPlaying = false;
+        let scrollSpeed = 1.0;
+        let fontSize = 5;
+        let textColor = '#ffffff';
+        let backgroundColor = '#000000';
+        let mirrorMode = 'none';
+        let scrollAnimation = null;
+        
+        // 手動行控制
+        let scriptLines = [];
+        let currentLineIndex = 0;
+        let lineMode = false;
+        
+        // DOM 元素
+        const content = document.getElementById('content');
+        
+        // 初始化
+        window.addEventListener('load', function() {
+            initializePeer();
+            setupKeyboardShortcuts();
+            loadSettings();
+            generateRoomId();
+        });
+        
+        // 初始化 PeerJS
+        function initializePeer() {
+            try {
+                peer = new Peer({
+                    secure: true,
+                    config: {
+                        'iceServers': [
+                            { urls: 'stun:stun.l.google.com:19302' },
+                            { urls: 'stun:global.stun.twilio.com:3478' }
+                        ]
+                    }
+                });
+
+                peer.on('open', function(id) {
+                    console.log('Peer ID:', id);
+                    isConnected = true;
+                    updateConnectionStatus();
+                });
+
+                peer.on('connection', function(conn) {
+                    handleNewConnection(conn);
+                });
+
+                peer.on('error', function(err) {
+                    console.error('PeerJS錯誤:', err);
+                    updateConnectionStatus();
+                    
+                    if (err.type === 'network' || err.type === 'server-error') {
+                        setTimeout(() => {
+                            console.log('嘗試重新連接...');
+                            initializePeer();
+                        }, 3000);
+                    }
+                });
+            } catch (error) {
+                console.error('PeerJS初始化失敗:', error);
+                updateConnectionStatus();
+            }
+        }
+        
+        // 處理新連接
+        function handleNewConnection(conn) {
+            conn.on('open', function() {
+                connections.set(conn.peer, conn);
+                updateDeviceCount();
+                console.log('新設備已連接:', conn.peer);
+                
+                // 發送當前設定給新連接的設備
+                sendToConnection(conn, 'settings-sync', {
+                    textColor, backgroundColor, fontSize, scrollSpeed, mirrorMode,
+                    script: content.textContent,
+                    totalLines: scriptLines.length,
+                    currentLine: currentLineIndex + 1
+                });
+            });
+
+            conn.on('data', function(message) {
+                handleMessage(message, conn);
+            });
+
+            conn.on('close', function() {
+                connections.delete(conn.peer);
+                updateDeviceCount();
+                console.log('設備已斷開:', conn.peer);
+            });
+        }
+        
+        // 處理訊息
+        function handleMessage(message, conn) {
+            console.log('收到訊息:', message);
+            
+            switch (message.type) {
+                case 'play-pause':
+                    if (message.data.isPlaying) {
+                        playScript();
+                    } else {
+                        pauseScript();
+                    }
+                    break;
+                case 'stop':
+                    stopScript();
+                    break;
+                case 'speed-change':
+                    changeSpeed(message.data.speed);
+                    break;
+                case 'font-change':
+                    changeFontSize(message.data.fontSize);
+                    break;
+                case 'color-change':
+                    if (message.data.textColor) setTextColor(message.data.textColor);
+                    if (message.data.backgroundColor) setBackgroundColor(message.data.backgroundColor);
+                    break;
+                case 'mirror-change':
+                    setMirror(message.data.mirrorMode);
+                    break;
+                case 'script-update':
+                    updateScript(message.data.script);
+                    break;
+                case 'jump-to-line':
+                    jumpToLine(message.data.line);
+                    break;
+                case 'previous-line':
+                    previousLine();
+                    break;
+                case 'next-line':
+                    nextLine();
+                    break;
+                case 'request-settings':
+                    sendCurrentSettings(conn);
+                    break;
+            }
+        }
+        
+        // 廣播訊息給所有連接
+        function broadcastMessage(type, data) {
+            connections.forEach(conn => {
+                if (conn.open) {
+                    sendToConnection(conn, type, data);
+                }
+            });
+        }
+        
+        // 發送訊息給特定連接
+        function sendToConnection(conn, type, data) {
+            try {
+                conn.send({ type: type, data: data });
+            } catch (error) {
+                console.error('發送訊息失敗:', error);
+            }
+        }
+        
+        // 發送當前設定
+        function sendCurrentSettings(conn) {
+            sendToConnection(conn, 'settings-response', {
+                textColor, backgroundColor, fontSize, scrollSpeed, mirrorMode,
+                script: content.textContent,
+                totalLines: scriptLines.length,
+                currentLine: currentLineIndex + 1,
+                isPlaying: isPlaying
+            });
+        }
+        
+        // 播放控制
+        function playScript() {
+            if (isPlaying) return;
+            
+            isPlaying = true;
+            updateConnectionStatus();
+            
+            if (lineMode) {
+                // 行模式下不自動滾動
+                return;
+            }
+            
+            // 連續滾動模式
+            const scrollDistance = 1; // 每次移動的像素
+            const intervalTime = 50 / scrollSpeed; // 根據速度調整間隔
+            
+            scrollAnimation = setInterval(() => {
+                const currentTransform = content.style.transform || 'translateY(100vh)';
+                const currentY = parseFloat(currentTransform.match(/translateY\\(([^)]+)\\)/)?.[1] || '100vh');
+                const newY = currentY - scrollDistance;
+                
+                content.style.transform = `translateY(${newY}px)`;
+                
+                // 如果滾動完畢，停止
+                if (newY < -content.offsetHeight) {
+                    stopScript();
+                }
+            }, intervalTime);
+        }
+        
+        function pauseScript() {
+            isPlaying = false;
+            updateConnectionStatus();
+            
+            if (scrollAnimation) {
+                clearInterval(scrollAnimation);
+                scrollAnimation = null;
+            }
+        }
+        
+        function stopScript() {
+            pauseScript();
+            content.style.transform = 'translateY(100vh)';
+            currentLineIndex = 0;
+            
+            if (lineMode) {
+                displayCurrentLine();
+            }
+        }
+        
+        // 設定控制
+        function changeSpeed(value) {
+            scrollSpeed = parseFloat(value);
+            document.getElementById('statusSpeed').textContent = scrollSpeed.toFixed(1);
+            
+            // 如果正在播放，重新開始以應用新速度
+            if (isPlaying) {
+                pauseScript();
+                playScript();
+            }
+        }
+        
+        function changeFontSize(value) {
+            fontSize = parseInt(value);
+            content.className = content.className.replace(/font-size-\\d+/, `font-size-${fontSize}`);
+            document.getElementById('statusFont').textContent = fontSize;
+        }
+        
+        function setTextColor(color) {
+            textColor = color;
+            content.style.color = color;
+        }
+        
+        function setBackgroundColor(color) {
+            backgroundColor = color;
+            document.body.style.backgroundColor = color;
+        }
+        
+        function setMirror(mode) {
+            mirrorMode = mode;
+            content.className = content.className.replace(/mirror-\\w+/g, '');
+            
+            if (mode !== 'none') {
+                content.classList.add(`mirror-${mode}`);
+            }
+            
+            const mirrorNames = {
+                'none': '正常',
+                'horizontal': '水平鏡像',
+                'vertical': '垂直鏡像',
+                'both': '雙向鏡像'
+            };
+            document.getElementById('statusMirror').textContent = mirrorNames[mode];
+        }
+        
+        function updateScript(scriptText) {
+            content.textContent = scriptText;
+            updateScriptLines();
+        }
+        
+        // 手動行控制
+        function updateScriptLines() {
+            const scriptText = content.textContent || '';
+            scriptLines = scriptText.split('\\n').filter(line => line.trim() !== '');
+            
+            // 通知所有連接的設備
+            broadcastMessage('total-lines', { totalLines: scriptLines.length });
+            
+            console.log('文稿更新，總共', scriptLines.length, '行');
+        }
+        
+        function jumpToLine(lineNumber) {
+            if (lineNumber < 1 || lineNumber > scriptLines.length) {
+                console.log('行號超出範圍:', lineNumber);
+                return;
+            }
+            
+            currentLineIndex = lineNumber - 1;
+            lineMode = true;
+            displayCurrentLine();
+            
+            // 通知控制設備
+            broadcastMessage('current-line-update', { 
+                currentLine: currentLineIndex + 1,
+                totalLines: scriptLines.length 
+            });
+        }
+        
+        function previousLine() {
+            if (currentLineIndex > 0) {
+                currentLineIndex--;
+                lineMode = true;
+                displayCurrentLine();
+                
+                broadcastMessage('current-line-update', { 
+                    currentLine: currentLineIndex + 1,
+                    totalLines: scriptLines.length 
+                });
+            }
+        }
+        
+        function nextLine() {
+            if (currentLineIndex < scriptLines.length - 1) {
+                currentLineIndex++;
+                lineMode = true;
+                displayCurrentLine();
+                
+                broadcastMessage('current-line-update', { 
+                    currentLine: currentLineIndex + 1,
+                    totalLines: scriptLines.length 
+                });
+            }
+        }
+        
+        function displayCurrentLine() {
+            if (scriptLines.length === 0) return;
+            
+            // 顯示當前行及前後文
+            const contextLines = 3;
+            const startIndex = Math.max(0, currentLineIndex - contextLines);
+            const endIndex = Math.min(scriptLines.length, currentLineIndex + contextLines + 1);
+            
+            let displayText = '';
+            for (let i = startIndex; i < endIndex; i++) {
+                const line = scriptLines[i];
+                if (i === currentLineIndex) {
+                    displayText += `<span class="current-line-highlight">${line}</span>\\n`;
+                } else {
+                    const opacity = Math.abs(i - currentLineIndex) <= 1 ? 1 : 0.6;
+                    displayText += `<span style="opacity: ${opacity};">${line}</span>\\n`;
+                }
+            }
+            
+            content.innerHTML = displayText;
+            
+            // 重置滾動位置以確保當前行可見
+            content.style.transform = 'translateY(20vh)';
+        }
+        
+        // 鍵盤快捷鍵
+        function setupKeyboardShortcuts() {
+            document.addEventListener('keydown', function(e) {
+                switch (e.code) {
+                    case 'Space':
+                        e.preventDefault();
+                        if (isPlaying) {
+                            pauseScript();
+                        } else {
+                            playScript();
+                        }
+                        break;
+                    case 'Escape':
+                        e.preventDefault();
+                        toggleHelp();
+                        break;
+                    case 'KeyS':
+                        e.preventDefault();
+                        stopScript();
+                        break;
+                    case 'KeyF':
+                        e.preventDefault();
+                        toggleFullscreen();
+                        break;
+                    case 'ArrowUp':
+                        e.preventDefault();
+                        changeSpeed(Math.min(5.0, scrollSpeed + 0.1));
+                        break;
+                    case 'ArrowDown':
+                        e.preventDefault();
+                        changeSpeed(Math.max(0.1, scrollSpeed - 0.1));
+                        break;
+                    case 'ArrowLeft':
+                        e.preventDefault();
+                        changeFontSize(Math.max(1, fontSize - 1));
+                        break;
+                    case 'ArrowRight':
+                        e.preventDefault();
+                        changeFontSize(Math.min(10, fontSize + 1));
+                        break;
+                }
+            });
+        }
+        
+        // 工具函數
+        function generateRoomId() {
+            roomId = 'room-' + Math.random().toString(36).substr(2, 9);
+            document.getElementById('currentRoomId').textContent = roomId;
+            
+            if (peer && peer.open) {
+                isHost = true;
+                console.log('房間已創建:', roomId);
+            }
+        }
+        
+        function updateConnectionStatus() {
+            const statusElement = document.getElementById('connectionStatus');
+            
+            if (isConnected) {
+                statusElement.innerHTML = '🟢 在線';
+            } else {
+                statusElement.innerHTML = '🔴 離線';
+            }
+        }
+        
+        function updateDeviceCount() {
+            document.getElementById('deviceCount').textContent = connections.size;
+        }
+        
+        function toggleHelp() {
+            const helpOverlay = document.getElementById('helpOverlay');
+            helpOverlay.classList.toggle('show');
+        }
+        
+        function hideHelp() {
+            document.getElementById('helpOverlay').classList.remove('show');
+        }
+        
+        function toggleFullscreen() {
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen();
+            } else {
+                document.exitFullscreen();
+            }
+        }
+        
+        function loadSettings() {
+            // 從 localStorage 載入設定
+            const savedSettings = localStorage.getItem('teleprompter-settings');
+            if (savedSettings) {
+                const settings = JSON.parse(savedSettings);
+                if (settings.textColor) setTextColor(settings.textColor);
+                if (settings.backgroundColor) setBackgroundColor(settings.backgroundColor);
+                if (settings.fontSize) changeFontSize(settings.fontSize);
+                if (settings.scrollSpeed) changeSpeed(settings.scrollSpeed);
+                if (settings.mirrorMode) setMirror(settings.mirrorMode);
+            }
+        }
+        
+        function saveSettings() {
+            const settings = {
+                textColor, backgroundColor, fontSize, scrollSpeed, mirrorMode
+            };
+            localStorage.setItem('teleprompter-settings', JSON.stringify(settings));
+        }
+        
+        // 頁面關閉前保存設定
+        window.addEventListener('beforeunload', saveSettings);
+        
+        // 初始化行數統計
+        window.addEventListener('load', function() {
+            setTimeout(updateScriptLines, 500);
+        });
+    </script>
+    
+    <!-- PeerJS CDN -->
+    <script src="https://unpkg.com/peerjs@1.4.7/dist/peerjs.min.js"></script>
+</body>
+</html>

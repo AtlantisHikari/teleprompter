@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>智慧提詞機 - 主顯示器</title>
+    <title>智慧提詞機 - 首頁導航</title>
     <style>
         * {
             margin: 0;
@@ -13,584 +13,311 @@
         
         body {
             font-family: "Microsoft JhengHei", "PingFang TC", "Helvetica Neue", Arial, sans-serif;
-            background: #000;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: #fff;
-            overflow: hidden;
-        }
-        
-        .main-content {
-            position: relative;
-            height: 100vh;
+            min-height: 100vh;
             display: flex;
             align-items: center;
             justify-content: center;
-            padding: 40px;
-        }
-        
-        .script-content {
-            font-size: 5vh;
-            line-height: 1.8;
-            text-align: center;
-            max-width: 90%;
-            word-break: break-word;
-            user-select: none;
-            transition: all 0.3s ease;
-        }
-        
-        .settings-panel {
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            bottom: 20px;
-            width: 350px;
-            background: rgba(0, 0, 0, 0.9);
-            border-radius: 10px;
             padding: 20px;
-            display: none;
-            z-index: 1000;
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            overflow-y: auto;
-            max-height: calc(100vh - 40px);
         }
         
-        .settings-toggle {
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            background: rgba(255, 255, 255, 0.2);
-            border: none;
-            border-radius: 50%;
-            width: 50px;
-            height: 50px;
-            color: white;
-            cursor: pointer;
-            font-size: 20px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            z-index: 1001;
+        .container {
+            text-align: center;
+            max-width: 800px;
+            width: 100%;
         }
         
-        .room-id-display {
-            position: fixed;
-            top: 20px;
-            left: 20px;
-            background: rgba(0, 0, 0, 0.7);
-            padding: 10px 15px;
+        .logo {
+            font-size: 4rem;
+            margin-bottom: 20px;
+            animation: pulse 2s infinite;
+        }
+        
+        .title {
+            font-size: 3rem;
+            font-weight: bold;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+        }
+        
+        .subtitle {
+            font-size: 1.2rem;
+            opacity: 0.9;
+            margin-bottom: 50px;
+        }
+        
+        .navigation-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 30px;
+            margin-bottom: 40px;
+        }
+        
+        .nav-card {
+            background: rgba(255, 255, 255, 0.15);
+            padding: 40px 30px;
             border-radius: 20px;
-            font-family: monospace;
-            font-size: 14px;
-            border: 1px solid rgba(255, 255, 255, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            backdrop-filter: blur(10px);
+            transition: all 0.3s ease;
+            text-decoration: none;
+            color: white;
+            display: block;
         }
         
-        .control-group {
+        .nav-card:hover {
+            transform: translateY(-10px);
+            background: rgba(255, 255, 255, 0.25);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+        }
+        
+        .nav-icon {
+            font-size: 3rem;
+            margin-bottom: 20px;
+            display: block;
+        }
+        
+        .nav-title {
+            font-size: 1.5rem;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+        
+        .nav-description {
+            font-size: 1rem;
+            opacity: 0.9;
+            line-height: 1.5;
+        }
+        
+        .features {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 30px;
+            border-radius: 15px;
+            margin-bottom: 30px;
+        }
+        
+        .features-title {
+            font-size: 1.5rem;
             margin-bottom: 20px;
         }
         
-        .control-label {
-            display: block;
-            margin-bottom: 8px;
-            font-weight: bold;
-        }
-        
-        .control-input {
-            width: 100%;
-            padding: 8px;
-            border: 1px solid rgba(255, 255, 255, 0.3);
-            border-radius: 5px;
-            background: rgba(255, 255, 255, 0.1);
-            color: white;
-            font-family: inherit;
-        }
-        
-        .control-input::placeholder {
-            color: rgba(255, 255, 255, 0.6);
-        }
-        
-        .control-btn {
-            padding: 10px 15px;
-            background: #4CAF50;
-            border: none;
-            border-radius: 5px;
-            color: white;
-            cursor: pointer;
-            margin: 5px 5px 5px 0;
-            font-weight: bold;
-        }
-        
-        .control-btn:hover {
-            background: #45a049;
-        }
-        
-        .control-btn.danger {
-            background: #f44336;
-        }
-        
-        .control-btn.danger:hover {
-            background: #da190b;
-        }
-        
-        .color-grid {
+        .features-grid {
             display: grid;
-            grid-template-columns: repeat(8, 1fr);
-            gap: 5px;
-            margin-top: 10px;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
         }
         
-        .color-option {
-            width: 100%;
-            height: 25px;
-            border: 2px solid #666;
-            border-radius: 4px;
-            cursor: pointer;
-            position: relative;
-            overflow: hidden;
-            transition: all 0.2s;
+        .feature-item {
+            text-align: left;
         }
         
-        .color-option:hover {
-            transform: scale(1.05);
-            border-color: #fff;
+        .feature-icon {
+            font-size: 1.5rem;
+            margin-right: 10px;
         }
         
-        .color-option.selected {
-            border-color: #2196F3;
-            border-width: 3px;
-            box-shadow: 0 0 8px rgba(33, 150, 243, 0.6);
+        .getting-started {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 25px;
+            border-radius: 15px;
+            text-align: left;
         }
         
-        .color-option.selected::after {
-            content: '✓';
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
+        .step {
+            display: flex;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        
+        .step-number {
+            background: #4CAF50;
             color: white;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 15px;
             font-weight: bold;
-            font-size: 12px;
-            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
         }
         
-        .slider-container {
-            margin: 10px 0;
+        .footer {
+            margin-top: 40px;
+            opacity: 0.7;
+            font-size: 0.9rem;
         }
         
-        .slider {
-            width: 100%;
-            margin: 5px 0;
-        }
-        
-        .hidden {
-            display: none !important;
-        }
-        
-        .connection-info {
-            position: fixed;
-            bottom: 20px;
-            left: 20px;
-            background: rgba(0, 0, 0, 0.7);
-            padding: 10px 15px;
-            border-radius: 10px;
-            font-size: 12px;
-            max-width: 300px;
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
         }
         
         @media (max-width: 768px) {
-            .script-content {
-                font-size: 4vh;
-                padding: 20px;
+            .title {
+                font-size: 2rem;
             }
             
-            .settings-panel {
-                right: 10px;
-                top: 10px;
-                min-width: 280px;
+            .logo {
+                font-size: 3rem;
             }
             
-            .settings-toggle {
-                right: 10px;
-                top: 10px;
+            .navigation-grid {
+                grid-template-columns: 1fr;
+                gap: 20px;
+            }
+            
+            .nav-card {
+                padding: 30px 20px;
             }
         }
     </style>
 </head>
 <body>
-    <div class="room-id-display" id="roomIdDisplay">
-        房間ID: <span id="currentRoomId">等待連接...</span>
-    </div>
-    
-    <button class="settings-toggle" onclick="toggleSettings()">⚙️</button>
-    
-    <div class="settings-panel" id="settingsPanel">
-        <div class="control-group">
-            <label class="control-label">房間設定</label>
-            <input type="text" id="roomIdInput" class="control-input" placeholder="輸入房間ID">
-            <button class="control-btn" onclick="createRoom()">創建房間</button>
-            <button class="control-btn" onclick="joinRoom()">加入房間</button>
+    <div class="container">
+        <!-- 標題 -->
+        <div class="logo">🎬</div>
+        <h1 class="title">智慧提詞機</h1>
+        <p class="subtitle">專業級線上提詞機系統 - 支援跨裝置即時控制</p>
+        
+        <!-- 主要導航 -->
+        <div class="navigation-grid">
+            <a href="main.html" class="nav-card">
+                <span class="nav-icon">📺</span>
+                <div class="nav-title">主顯示器</div>
+                <div class="nav-description">顯示提詞內容的主畫面，支援全螢幕模式和各種顯示設定</div>
+            </a>
+            
+            <a href="control.html" class="nav-card">
+                <span class="nav-icon">🎮</span>
+                <div class="nav-title">控制面板</div>
+                <div class="nav-description">遠端控制主顯示器，編輯文稿、調整設定、控制播放</div>
+            </a>
+            
+            <a href="network.html" class="nav-card">
+                <span class="nav-icon">🔗</span>
+                <div class="nav-title">設備連線助手</div>
+                <div class="nav-description">協助設定跨裝置連線，提供QR碼和網路診斷工具</div>
+            </a>
         </div>
         
-        <div class="control-group">
-            <label class="control-label">字體大小: <span id="fontSizeValue">5</span></label>
-            <input type="range" id="fontSizeSlider" class="slider" min="2" max="10" value="5">
+        <!-- 功能特色 -->
+        <div class="features">
+            <h2 class="features-title">✨ 主要功能特色</h2>
+            <div class="features-grid">
+                <div class="feature-item">
+                    <span class="feature-icon">🌐</span>
+                    <strong>完全線上</strong><br>
+                    無需安裝，開啟即用
+                </div>
+                <div class="feature-item">
+                    <span class="feature-icon">📱</span>
+                    <strong>跨平台支援</strong><br>
+                    手機、平板、電腦皆可使用
+                </div>
+                <div class="feature-item">
+                    <span class="feature-icon">🔄</span>
+                    <strong>即時同步</strong><br>
+                    WebRTC P2P 即時通訊
+                </div>
+                <div class="feature-item">
+                    <span class="feature-icon">🎨</span>
+                    <strong>豐富自訂</strong><br>
+                    40+ 顏色和字體調整
+                </div>
+                <div class="feature-item">
+                    <span class="feature-icon">📍</span>
+                    <strong>手動行控制</strong><br>
+                    精確的逐行導航功能
+                </div>
+                <div class="feature-item">
+                    <span class="feature-icon">🪞</span>
+                    <strong>鏡像模式</strong><br>
+                    支援多種翻轉顯示
+                </div>
+            </div>
         </div>
         
-        <div class="control-group">
-            <label class="control-label">文字顏色</label>
-            <div class="color-grid" id="textColorPicker"></div>
+        <!-- 快速開始 -->
+        <div class="getting-started">
+            <h2 style="margin-bottom: 20px; text-align: center;">🚀 快速開始</h2>
+            
+            <div class="step">
+                <div class="step-number">1</div>
+                <div>點擊「📺 主顯示器」在要顯示文字的裝置上開啟主畫面</div>
+            </div>
+            
+            <div class="step">
+                <div class="step-number">2</div>
+                <div>點擊「🎮 控制面板」在控制裝置上開啟遠端控制介面</div>
+            </div>
+            
+            <div class="step">
+                <div class="step-number">3</div>
+                <div>在控制面板輸入主顯示器顯示的房間ID，建立連線</div>
+            </div>
+            
+            <div class="step">
+                <div class="step-number">4</div>
+                <div>開始編輯文稿和調整設定，享受專業的提詞機體驗！</div>
+            </div>
         </div>
         
-        <div class="control-group">
-            <label class="control-label">背景顏色</label>
-            <div class="color-grid" id="bgColorPicker"></div>
+        <!-- 頁尾 -->
+        <div class="footer">
+            <p>💡 提示：建議使用 Chrome、Safari 或 Firefox 瀏覽器以獲得最佳體驗</p>
+            <p>🔒 所有資料都在您的裝置間直接傳輸，確保隱私安全</p>
         </div>
-        
-        <div class="control-group">
-            <label class="control-label">文稿內容</label>
-            <textarea id="scriptInput" class="control-input" rows="5" placeholder="輸入文稿內容..."></textarea>
-            <button class="control-btn" onclick="updateScript()">更新顯示</button>
-        </div>
-        
-        <div class="control-group">
-            <button class="control-btn" onclick="openControlPanel()">📱 開啟控制面板</button>
-        </div>
-    </div>
-    
-    <div class="main-content">
-        <div class="script-content" id="scriptContent">
-            歡迎使用智慧提詞機<br>
-            請在右上角設定中輸入文稿內容
-        </div>
-    </div>
-    
-    <div class="connection-info" id="connectionInfo">
-        <div>🔗 連接狀態: <span id="connectionStatus">離線</span></div>
-        <div>📱 設備數量: <span id="deviceCount">0</span></div>
     </div>
 
     <script>
-        // PeerJS 設定 (使用免費的 PeerJS 服務器)
-        let peer = null;
-        let connections = new Map();
-        let isHost = false;
-        let roomId = '';
-        let currentSettings = {
-            fontSize: 5,
-            textColor: '#ffffff',
-            backgroundColor: '#000000',
-            script: '歡迎使用智慧提詞機\n請在右上角設定中輸入文稿內容'
-        };
-
-        // 常用顏色
-        const COMMON_COLORS = [
-            '#ffffff', '#f0f0f0', '#d0d0d0', '#b0b0b0', '#808080', '#606060', '#404040', '#000000',
-            '#fff8dc', '#ffffe0', '#ffff00', '#ffd700', '#ffa500', '#ff8c00', '#ff6347', '#ff4500',
-            '#ffe4e1', '#ffc0cb', '#ff69b4', '#ff1493', '#dc143c', '#b22222', '#8b0000', '#800000',
-            '#f0fff0', '#e6ffe6', '#98fb98', '#90ee90', '#00ff00', '#32cd32', '#228b22', '#008000',
-            '#e0ffff', '#afeeee', '#87ceeb', '#87cefa', '#00bfff', '#1e90ff', '#0000ff', '#000080',
-            '#f8f8ff', '#e6e6fa', '#dda0dd', '#da70d6', '#ba55d3', '#9370db', '#8a2be2', '#4b0082'
-        ];
-
-        // 初始化
+        // 檢查瀏覽器相容性
         window.addEventListener('load', function() {
-            initializePeer();
-            setupUI();
+            if (!window.Peer) {
+                console.log('PeerJS 正在載入...');
+            }
+            
+            // 檢查 WebRTC 支援
+            if (!window.RTCPeerConnection && !window.webkitRTCPeerConnection) {
+                showCompatibilityWarning();
+            }
         });
-
-        // 初始化 PeerJS
-        function initializePeer() {
-            try {
-                // 使用官方 PeerJS 雲端服務
-                peer = new Peer({
-                    secure: true,
-                    config: {
-                        'iceServers': [
-                            { urls: 'stun:stun.l.google.com:19302' },
-                            { urls: 'stun:global.stun.twilio.com:3478' }
-                        ]
-                    }
-                });
-
-                peer.on('open', function(id) {
-                    console.log('Peer ID:', id);
-                    updateConnectionStatus('已連接到服務器');
-                });
-
-                peer.on('connection', function(conn) {
-                    handleNewConnection(conn);
-                });
-
-                peer.on('error', function(err) {
-                    console.error('PeerJS錯誤:', err);
-                    updateConnectionStatus('連接錯誤: ' + err.type);
-                    
-                    // 如果是網路錯誤，嘗試重新連接
-                    if (err.type === 'network' || err.type === 'server-error') {
-                        setTimeout(() => {
-                            console.log('嘗試重新連接...');
-                            initializePeer();
-                        }, 3000);
-                    }
-                });
-            } catch (error) {
-                console.error('PeerJS初始化失敗:', error);
-                // 如果 PeerJS 不可用，使用本地模式
-                updateConnectionStatus('本地模式');
-            }
+        
+        function showCompatibilityWarning() {
+            const warning = document.createElement('div');
+            warning.style.cssText = `
+                position: fixed;
+                top: 0;
+                left: 0;
+                right: 0;
+                background: #ff9800;
+                color: white;
+                padding: 10px;
+                text-align: center;
+                z-index: 9999;
+            `;
+            warning.innerHTML = '⚠️ 您的瀏覽器可能不支援 WebRTC，建議使用 Chrome、Safari 或 Firefox';
+            document.body.appendChild(warning);
+            
+            setTimeout(() => {
+                document.body.removeChild(warning);
+            }, 5000);
         }
-
-        // 設置UI
-        function setupUI() {
-            createColorPickers();
-            setupEventListeners();
-            applySettings();
-        }
-
-        // 創建顏色選擇器
-        function createColorPickers() {
-            const textPicker = document.getElementById('textColorPicker');
-            const bgPicker = document.getElementById('bgColorPicker');
-
-            COMMON_COLORS.forEach(color => {
-                // 文字顏色
-                const textOption = document.createElement('div');
-                textOption.className = 'color-option';
-                textOption.style.backgroundColor = color;
-                textOption.onclick = () => setTextColor(color);
-                textPicker.appendChild(textOption);
-
-                // 背景顏色
-                const bgOption = document.createElement('div');
-                bgOption.className = 'color-option';
-                bgOption.style.backgroundColor = color;
-                bgOption.onclick = () => setBackgroundColor(color);
-                bgPicker.appendChild(bgOption);
+        
+        // 添加載入動畫
+        document.addEventListener('DOMContentLoaded', function() {
+            const cards = document.querySelectorAll('.nav-card');
+            cards.forEach((card, index) => {
+                card.style.opacity = '0';
+                card.style.transform = 'translateY(30px)';
+                setTimeout(() => {
+                    card.style.transition = 'all 0.6s ease';
+                    card.style.opacity = '1';
+                    card.style.transform = 'translateY(0)';
+                }, index * 200);
             });
-
-            updateColorSelection('textColorPicker', currentSettings.textColor);
-            updateColorSelection('bgColorPicker', currentSettings.backgroundColor);
-        }
-
-        // 設置事件監聽器
-        function setupEventListeners() {
-            const fontSizeSlider = document.getElementById('fontSizeSlider');
-            fontSizeSlider.addEventListener('input', function() {
-                setFontSize(this.value);
-            });
-
-            // 鍵盤快捷鍵
-            document.addEventListener('keydown', function(e) {
-                if (e.key === 'Escape') {
-                    toggleSettings();
-                }
-            });
-        }
-
-        // 房間管理
-        function createRoom() {
-            roomId = generateRoomId();
-            document.getElementById('roomIdInput').value = roomId;
-            document.getElementById('currentRoomId').textContent = roomId;
-            isHost = true;
-            updateConnectionStatus('房間已創建');
-        }
-
-        function joinRoom() {
-            const inputRoomId = document.getElementById('roomIdInput').value.trim();
-            if (!inputRoomId) {
-                alert('請輸入房間ID');
-                return;
-            }
-
-            if (peer && peer.open) {
-                updateConnectionStatus('正在連接房間...');
-                const conn = peer.connect(inputRoomId);
-                
-                conn.on('open', function() {
-                    updateConnectionStatus('已連接到房間');
-                });
-                
-                conn.on('error', function(err) {
-                    console.error('連接房間失敗:', err);
-                    updateConnectionStatus('連接房間失敗');
-                    alert('無法連接到房間，請檢查房間ID是否正確');
-                });
-                
-                handleNewConnection(conn);
-                roomId = inputRoomId;
-                document.getElementById('currentRoomId').textContent = roomId;
-                isHost = false;
-            } else {
-                alert('請等待連接到服務器，或重新整理頁面重試');
-            }
-        }
-
-        // 處理新連接
-        function handleNewConnection(conn) {
-            conn.on('open', function() {
-                connections.set(conn.peer, conn);
-                updateDeviceCount();
-                updateConnectionStatus('已連接');
-
-                // 如果是主機，發送當前設定
-                if (isHost) {
-                    conn.send({
-                        type: 'settings',
-                        data: currentSettings
-                    });
-                }
-            });
-
-            conn.on('data', function(message) {
-                handleMessage(message, conn);
-            });
-
-            conn.on('close', function() {
-                connections.delete(conn.peer);
-                updateDeviceCount();
-            });
-        }
-
-        // 處理消息
-        function handleMessage(message, conn) {
-            console.log('收到消息:', message);
-
-            switch (message.type) {
-                case 'settings':
-                    currentSettings = { ...currentSettings, ...message.data };
-                    applySettings();
-                    break;
-                case 'script':
-                    currentSettings.script = message.data;
-                    updateScriptDisplay();
-                    break;
-                case 'textColor':
-                    setTextColor(message.data, false);
-                    break;
-                case 'backgroundColor':
-                    setBackgroundColor(message.data, false);
-                    break;
-                case 'fontSize':
-                    setFontSize(message.data, false);
-                    break;
-            }
-        }
-
-        // 廣播消息
-        function broadcastMessage(message) {
-            connections.forEach(conn => {
-                if (conn.open) {
-                    conn.send(message);
-                }
-            });
-        }
-
-        // 設定功能
-        function setTextColor(color, broadcast = true) {
-            currentSettings.textColor = color;
-            document.getElementById('scriptContent').style.color = color;
-            updateColorSelection('textColorPicker', color);
-
-            if (broadcast) {
-                broadcastMessage({
-                    type: 'textColor',
-                    data: color
-                });
-            }
-        }
-
-        function setBackgroundColor(color, broadcast = true) {
-            currentSettings.backgroundColor = color;
-            document.body.style.backgroundColor = color;
-            updateColorSelection('bgColorPicker', color);
-
-            if (broadcast) {
-                broadcastMessage({
-                    type: 'backgroundColor',
-                    data: color
-                });
-            }
-        }
-
-        function setFontSize(size, broadcast = true) {
-            currentSettings.fontSize = size;
-            document.getElementById('scriptContent').style.fontSize = size + 'vh';
-            document.getElementById('fontSizeValue').textContent = size;
-            document.getElementById('fontSizeSlider').value = size;
-
-            if (broadcast) {
-                broadcastMessage({
-                    type: 'fontSize',
-                    data: size
-                });
-            }
-        }
-
-        function updateScript() {
-            const script = document.getElementById('scriptInput').value;
-            currentSettings.script = script;
-            updateScriptDisplay();
-
-            broadcastMessage({
-                type: 'script',
-                data: script
-            });
-        }
-
-        function updateScriptDisplay() {
-            const content = document.getElementById('scriptContent');
-            content.innerHTML = currentSettings.script.replace(/\n/g, '<br>');
-        }
-
-        // 顏色選擇更新
-        function updateColorSelection(pickerId, selectedColor) {
-            const picker = document.getElementById(pickerId);
-            picker.querySelectorAll('.color-option').forEach(option => {
-                option.classList.remove('selected');
-                if (option.style.backgroundColor === selectedColor ||
-                    rgbToHex(option.style.backgroundColor) === selectedColor) {
-                    option.classList.add('selected');
-                }
-            });
-        }
-
-        function rgbToHex(rgb) {
-            if (rgb.startsWith('#')) return rgb;
-            const result = rgb.match(/\d+/g);
-            if (!result) return rgb;
-            return "#" + ((1 << 24) + (parseInt(result[0]) << 16) + (parseInt(result[1]) << 8) + parseInt(result[2])).toString(16).slice(1);
-        }
-
-        // 應用所有設定
-        function applySettings() {
-            setTextColor(currentSettings.textColor, false);
-            setBackgroundColor(currentSettings.backgroundColor, false);
-            setFontSize(currentSettings.fontSize, false);
-            updateScriptDisplay();
-            document.getElementById('scriptInput').value = currentSettings.script;
-        }
-
-        // UI 功能
-        function toggleSettings() {
-            const panel = document.getElementById('settingsPanel');
-            panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
-        }
-
-        function openControlPanel() {
-            window.open(window.location.href, '_blank');
-        }
-
-        // 工具函數
-        function generateRoomId() {
-            return 'room-' + Math.random().toString(36).substr(2, 9);
-        }
-
-        function updateConnectionStatus(status) {
-            document.getElementById('connectionStatus').textContent = status;
-        }
-
-        function updateDeviceCount() {
-            document.getElementById('deviceCount').textContent = connections.size;
-        }
+        });
     </script>
     
     <!-- PeerJS CDN -->
