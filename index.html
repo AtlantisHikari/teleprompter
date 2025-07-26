@@ -1,0 +1,573 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>智慧提詞機 - 主顯示器</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: "Microsoft JhengHei", "PingFang TC", "Helvetica Neue", Arial, sans-serif;
+            background: #000;
+            color: #fff;
+            overflow: hidden;
+        }
+        
+        .main-content {
+            position: relative;
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 40px;
+        }
+        
+        .script-content {
+            font-size: 5vh;
+            line-height: 1.8;
+            text-align: center;
+            max-width: 90%;
+            word-break: break-word;
+            user-select: none;
+            transition: all 0.3s ease;
+        }
+        
+        .settings-panel {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.9);
+            border-radius: 10px;
+            padding: 20px;
+            display: none;
+            min-width: 300px;
+            z-index: 1000;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        .settings-toggle {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            color: white;
+            cursor: pointer;
+            font-size: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1001;
+        }
+        
+        .room-id-display {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 10px 15px;
+            border-radius: 20px;
+            font-family: monospace;
+            font-size: 14px;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+        
+        .control-group {
+            margin-bottom: 20px;
+        }
+        
+        .control-label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: bold;
+        }
+        
+        .control-input {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 5px;
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            font-family: inherit;
+        }
+        
+        .control-input::placeholder {
+            color: rgba(255, 255, 255, 0.6);
+        }
+        
+        .control-btn {
+            padding: 10px 15px;
+            background: #4CAF50;
+            border: none;
+            border-radius: 5px;
+            color: white;
+            cursor: pointer;
+            margin: 5px 5px 5px 0;
+            font-weight: bold;
+        }
+        
+        .control-btn:hover {
+            background: #45a049;
+        }
+        
+        .control-btn.danger {
+            background: #f44336;
+        }
+        
+        .control-btn.danger:hover {
+            background: #da190b;
+        }
+        
+        .color-grid {
+            display: grid;
+            grid-template-columns: repeat(8, 1fr);
+            gap: 5px;
+            margin-top: 10px;
+        }
+        
+        .color-option {
+            width: 100%;
+            height: 25px;
+            border: 2px solid #666;
+            border-radius: 4px;
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+            transition: all 0.2s;
+        }
+        
+        .color-option:hover {
+            transform: scale(1.05);
+            border-color: #fff;
+        }
+        
+        .color-option.selected {
+            border-color: #2196F3;
+            border-width: 3px;
+            box-shadow: 0 0 8px rgba(33, 150, 243, 0.6);
+        }
+        
+        .color-option.selected::after {
+            content: '✓';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: white;
+            font-weight: bold;
+            font-size: 12px;
+            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
+        }
+        
+        .slider-container {
+            margin: 10px 0;
+        }
+        
+        .slider {
+            width: 100%;
+            margin: 5px 0;
+        }
+        
+        .hidden {
+            display: none !important;
+        }
+        
+        .connection-info {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 10px 15px;
+            border-radius: 10px;
+            font-size: 12px;
+            max-width: 300px;
+        }
+        
+        @media (max-width: 768px) {
+            .script-content {
+                font-size: 4vh;
+                padding: 20px;
+            }
+            
+            .settings-panel {
+                right: 10px;
+                top: 10px;
+                min-width: 280px;
+            }
+            
+            .settings-toggle {
+                right: 10px;
+                top: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="room-id-display" id="roomIdDisplay">
+        房間ID: <span id="currentRoomId">等待連接...</span>
+    </div>
+    
+    <button class="settings-toggle" onclick="toggleSettings()">⚙️</button>
+    
+    <div class="settings-panel" id="settingsPanel">
+        <div class="control-group">
+            <label class="control-label">房間設定</label>
+            <input type="text" id="roomIdInput" class="control-input" placeholder="輸入房間ID">
+            <button class="control-btn" onclick="createRoom()">創建房間</button>
+            <button class="control-btn" onclick="joinRoom()">加入房間</button>
+        </div>
+        
+        <div class="control-group">
+            <label class="control-label">字體大小: <span id="fontSizeValue">5</span></label>
+            <input type="range" id="fontSizeSlider" class="slider" min="2" max="10" value="5">
+        </div>
+        
+        <div class="control-group">
+            <label class="control-label">文字顏色</label>
+            <div class="color-grid" id="textColorPicker"></div>
+        </div>
+        
+        <div class="control-group">
+            <label class="control-label">背景顏色</label>
+            <div class="color-grid" id="bgColorPicker"></div>
+        </div>
+        
+        <div class="control-group">
+            <label class="control-label">文稿內容</label>
+            <textarea id="scriptInput" class="control-input" rows="5" placeholder="輸入文稿內容..."></textarea>
+            <button class="control-btn" onclick="updateScript()">更新顯示</button>
+        </div>
+        
+        <div class="control-group">
+            <button class="control-btn" onclick="openControlPanel()">📱 開啟控制面板</button>
+        </div>
+    </div>
+    
+    <div class="main-content">
+        <div class="script-content" id="scriptContent">
+            歡迎使用智慧提詞機<br>
+            請在右上角設定中輸入文稿內容
+        </div>
+    </div>
+    
+    <div class="connection-info" id="connectionInfo">
+        <div>🔗 連接狀態: <span id="connectionStatus">離線</span></div>
+        <div>📱 設備數量: <span id="deviceCount">0</span></div>
+    </div>
+
+    <script>
+        // PeerJS 設定 (使用免費的 PeerJS 服務器)
+        let peer = null;
+        let connections = new Map();
+        let isHost = false;
+        let roomId = '';
+        let currentSettings = {
+            fontSize: 5,
+            textColor: '#ffffff',
+            backgroundColor: '#000000',
+            script: '歡迎使用智慧提詞機\n請在右上角設定中輸入文稿內容'
+        };
+
+        // 常用顏色
+        const COMMON_COLORS = [
+            '#ffffff', '#f0f0f0', '#d0d0d0', '#b0b0b0', '#808080', '#606060', '#404040', '#000000',
+            '#fff8dc', '#ffffe0', '#ffff00', '#ffd700', '#ffa500', '#ff8c00', '#ff6347', '#ff4500',
+            '#ffe4e1', '#ffc0cb', '#ff69b4', '#ff1493', '#dc143c', '#b22222', '#8b0000', '#800000',
+            '#f0fff0', '#e6ffe6', '#98fb98', '#90ee90', '#00ff00', '#32cd32', '#228b22', '#008000',
+            '#e0ffff', '#afeeee', '#87ceeb', '#87cefa', '#00bfff', '#1e90ff', '#0000ff', '#000080',
+            '#f8f8ff', '#e6e6fa', '#dda0dd', '#da70d6', '#ba55d3', '#9370db', '#8a2be2', '#4b0082'
+        ];
+
+        // 初始化
+        window.addEventListener('load', function() {
+            initializePeer();
+            setupUI();
+        });
+
+        // 初始化 PeerJS
+        function initializePeer() {
+            try {
+                // 使用免費的 PeerJS 服務器
+                peer = new Peer({
+                    host: 'peerjs-server.herokuapp.com',
+                    port: 443,
+                    secure: true,
+                    path: '/'
+                });
+
+                peer.on('open', function(id) {
+                    console.log('Peer ID:', id);
+                    updateConnectionStatus('已連接到服務器');
+                });
+
+                peer.on('connection', function(conn) {
+                    handleNewConnection(conn);
+                });
+
+                peer.on('error', function(err) {
+                    console.error('PeerJS錯誤:', err);
+                    updateConnectionStatus('連接錯誤');
+                });
+            } catch (error) {
+                console.error('PeerJS初始化失敗:', error);
+                // 如果 PeerJS 不可用，使用本地模式
+                updateConnectionStatus('本地模式');
+            }
+        }
+
+        // 設置UI
+        function setupUI() {
+            createColorPickers();
+            setupEventListeners();
+            applySettings();
+        }
+
+        // 創建顏色選擇器
+        function createColorPickers() {
+            const textPicker = document.getElementById('textColorPicker');
+            const bgPicker = document.getElementById('bgColorPicker');
+
+            COMMON_COLORS.forEach(color => {
+                // 文字顏色
+                const textOption = document.createElement('div');
+                textOption.className = 'color-option';
+                textOption.style.backgroundColor = color;
+                textOption.onclick = () => setTextColor(color);
+                textPicker.appendChild(textOption);
+
+                // 背景顏色
+                const bgOption = document.createElement('div');
+                bgOption.className = 'color-option';
+                bgOption.style.backgroundColor = color;
+                bgOption.onclick = () => setBackgroundColor(color);
+                bgPicker.appendChild(bgOption);
+            });
+
+            updateColorSelection('textColorPicker', currentSettings.textColor);
+            updateColorSelection('bgColorPicker', currentSettings.backgroundColor);
+        }
+
+        // 設置事件監聽器
+        function setupEventListeners() {
+            const fontSizeSlider = document.getElementById('fontSizeSlider');
+            fontSizeSlider.addEventListener('input', function() {
+                setFontSize(this.value);
+            });
+
+            // 鍵盤快捷鍵
+            document.addEventListener('keydown', function(e) {
+                if (e.key === 'Escape') {
+                    toggleSettings();
+                }
+            });
+        }
+
+        // 房間管理
+        function createRoom() {
+            roomId = generateRoomId();
+            document.getElementById('roomIdInput').value = roomId;
+            document.getElementById('currentRoomId').textContent = roomId;
+            isHost = true;
+            updateConnectionStatus('房間已創建');
+        }
+
+        function joinRoom() {
+            const inputRoomId = document.getElementById('roomIdInput').value.trim();
+            if (!inputRoomId) {
+                alert('請輸入房間ID');
+                return;
+            }
+
+            if (peer && peer.open) {
+                const conn = peer.connect(inputRoomId);
+                handleNewConnection(conn);
+                roomId = inputRoomId;
+                document.getElementById('currentRoomId').textContent = roomId;
+                isHost = false;
+            } else {
+                alert('請等待連接到服務器');
+            }
+        }
+
+        // 處理新連接
+        function handleNewConnection(conn) {
+            conn.on('open', function() {
+                connections.set(conn.peer, conn);
+                updateDeviceCount();
+                updateConnectionStatus('已連接');
+
+                // 如果是主機，發送當前設定
+                if (isHost) {
+                    conn.send({
+                        type: 'settings',
+                        data: currentSettings
+                    });
+                }
+            });
+
+            conn.on('data', function(message) {
+                handleMessage(message, conn);
+            });
+
+            conn.on('close', function() {
+                connections.delete(conn.peer);
+                updateDeviceCount();
+            });
+        }
+
+        // 處理消息
+        function handleMessage(message, conn) {
+            console.log('收到消息:', message);
+
+            switch (message.type) {
+                case 'settings':
+                    currentSettings = { ...currentSettings, ...message.data };
+                    applySettings();
+                    break;
+                case 'script':
+                    currentSettings.script = message.data;
+                    updateScriptDisplay();
+                    break;
+                case 'textColor':
+                    setTextColor(message.data, false);
+                    break;
+                case 'backgroundColor':
+                    setBackgroundColor(message.data, false);
+                    break;
+                case 'fontSize':
+                    setFontSize(message.data, false);
+                    break;
+            }
+        }
+
+        // 廣播消息
+        function broadcastMessage(message) {
+            connections.forEach(conn => {
+                if (conn.open) {
+                    conn.send(message);
+                }
+            });
+        }
+
+        // 設定功能
+        function setTextColor(color, broadcast = true) {
+            currentSettings.textColor = color;
+            document.getElementById('scriptContent').style.color = color;
+            updateColorSelection('textColorPicker', color);
+
+            if (broadcast) {
+                broadcastMessage({
+                    type: 'textColor',
+                    data: color
+                });
+            }
+        }
+
+        function setBackgroundColor(color, broadcast = true) {
+            currentSettings.backgroundColor = color;
+            document.body.style.backgroundColor = color;
+            updateColorSelection('bgColorPicker', color);
+
+            if (broadcast) {
+                broadcastMessage({
+                    type: 'backgroundColor',
+                    data: color
+                });
+            }
+        }
+
+        function setFontSize(size, broadcast = true) {
+            currentSettings.fontSize = size;
+            document.getElementById('scriptContent').style.fontSize = size + 'vh';
+            document.getElementById('fontSizeValue').textContent = size;
+            document.getElementById('fontSizeSlider').value = size;
+
+            if (broadcast) {
+                broadcastMessage({
+                    type: 'fontSize',
+                    data: size
+                });
+            }
+        }
+
+        function updateScript() {
+            const script = document.getElementById('scriptInput').value;
+            currentSettings.script = script;
+            updateScriptDisplay();
+
+            broadcastMessage({
+                type: 'script',
+                data: script
+            });
+        }
+
+        function updateScriptDisplay() {
+            const content = document.getElementById('scriptContent');
+            content.innerHTML = currentSettings.script.replace(/\n/g, '<br>');
+        }
+
+        // 顏色選擇更新
+        function updateColorSelection(pickerId, selectedColor) {
+            const picker = document.getElementById(pickerId);
+            picker.querySelectorAll('.color-option').forEach(option => {
+                option.classList.remove('selected');
+                if (option.style.backgroundColor === selectedColor ||
+                    rgbToHex(option.style.backgroundColor) === selectedColor) {
+                    option.classList.add('selected');
+                }
+            });
+        }
+
+        function rgbToHex(rgb) {
+            if (rgb.startsWith('#')) return rgb;
+            const result = rgb.match(/\d+/g);
+            if (!result) return rgb;
+            return "#" + ((1 << 24) + (parseInt(result[0]) << 16) + (parseInt(result[1]) << 8) + parseInt(result[2])).toString(16).slice(1);
+        }
+
+        // 應用所有設定
+        function applySettings() {
+            setTextColor(currentSettings.textColor, false);
+            setBackgroundColor(currentSettings.backgroundColor, false);
+            setFontSize(currentSettings.fontSize, false);
+            updateScriptDisplay();
+            document.getElementById('scriptInput').value = currentSettings.script;
+        }
+
+        // UI 功能
+        function toggleSettings() {
+            const panel = document.getElementById('settingsPanel');
+            panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
+        }
+
+        function openControlPanel() {
+            window.open(window.location.href, '_blank');
+        }
+
+        // 工具函數
+        function generateRoomId() {
+            return 'room-' + Math.random().toString(36).substr(2, 9);
+        }
+
+        function updateConnectionStatus(status) {
+            document.getElementById('connectionStatus').textContent = status;
+        }
+
+        function updateDeviceCount() {
+            document.getElementById('deviceCount').textContent = connections.size;
+        }
+    </script>
+    
+    <!-- PeerJS CDN -->
+    <script src="https://unpkg.com/peerjs@1.4.7/dist/peerjs.min.js"></script>
+</body>
+</html>
