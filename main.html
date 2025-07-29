@@ -459,6 +459,14 @@
         // 初始化 PeerJS
         function initializePeer() {
             try {
+                // 檢查 PeerJS 是否成功載入
+                if (typeof Peer === 'undefined') {
+                    console.error('❌ PeerJS 庫未成功載入，請檢查網路連接');
+                    updateConnectionStatus();
+                    showNotification('❌ 無法載入PeerJS庫，請重新整理頁面或檢查網路連接');
+                    return;
+                }
+                
                 // 使用隨機ID避免衝突
                 const randomId = 'main-' + Math.random().toString(36).substr(2, 9);
                 
@@ -1056,6 +1064,50 @@
             setTimeout(updateScriptLines, 500);
             initializeSettings();
         });
+        
+        // 通知系統
+        function showNotification(message) {
+            const notification = document.createElement('div');
+            notification.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                background: rgba(76, 175, 80, 0.9);
+                color: white;
+                padding: 15px 20px;
+                border-radius: 10px;
+                z-index: 9999;
+                font-size: 14px;
+                max-width: 300px;
+                animation: slideIn 0.3s ease;
+            `;
+            notification.textContent = message;
+            
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                notification.style.animation = 'slideOut 0.3s ease';
+                setTimeout(() => {
+                    if (document.body.contains(notification)) {
+                        document.body.removeChild(notification);
+                    }
+                }, 300);
+            }, 4000);
+        }
+        
+        // 添加通知動畫樣式
+        const notificationStyle = document.createElement('style');
+        notificationStyle.textContent = `
+            @keyframes slideIn {
+                from { transform: translateX(100%); opacity: 0; }
+                to { transform: translateX(0); opacity: 1; }
+            }
+            @keyframes slideOut {
+                from { transform: translateX(0); opacity: 1; }
+                to { transform: translateX(100%); opacity: 0; }
+            }
+        `;
+        document.head.appendChild(notificationStyle);
     </script>
     
     <!-- PeerJS CDN -->
