@@ -351,6 +351,83 @@
             background: rgba(255, 255, 255, 0.15);
         }
         
+        /* 文稿歷史樣式 */
+        .script-history {
+            max-height: 200px;
+            overflow-y: auto;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .script-item {
+            padding: 12px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+        
+        .script-item:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+        
+        .script-item:last-child {
+            border-bottom: none;
+        }
+        
+        .script-item.active {
+            background: rgba(33, 150, 243, 0.3);
+            border-left: 3px solid #2196F3;
+        }
+        
+        .script-name {
+            font-weight: bold;
+            margin-bottom: 4px;
+        }
+        
+        .script-time {
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.6);
+            margin-bottom: 4px;
+        }
+        
+        .script-preview {
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.8);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        
+        .script-actions {
+            margin-top: 8px;
+            display: flex;
+            gap: 5px;
+        }
+        
+        .script-actions button {
+            padding: 4px 8px;
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            border-radius: 4px;
+            color: white;
+            font-size: 11px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+        
+        .script-actions button:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+        
+        .script-actions .delete-btn {
+            background: rgba(244, 67, 54, 0.6);
+        }
+        
+        .script-actions .delete-btn:hover {
+            background: rgba(244, 67, 54, 0.8);
+        }
+        
         /* 反饋訊息 */
         .feedback {
             position: fixed;
@@ -531,10 +608,28 @@
                     📝 文稿編輯
                 </div>
                 <textarea id="scriptEditor" class="script-editor" placeholder="在此輸入文稿內容..." disabled></textarea>
-                <div style="margin-top: 10px;">
-                    <button class="control-btn" onclick="updateScript()" disabled style="background: #2196F3;">
+                <div style="margin-top: 10px; display: flex; gap: 10px;">
+                    <button class="control-btn" onclick="updateScript()" disabled style="background: #2196F3; flex: 1;">
                         📤 更新到主顯示器
                     </button>
+                    <button class="control-btn" onclick="saveScript()" disabled style="background: #4CAF50;">
+                        💾 保存
+                    </button>
+                    <button class="control-btn" onclick="addNewScript()" style="background: #FF9800;">
+                        ➕ 新增
+                    </button>
+                </div>
+            </div>
+            
+            <!-- 文稿歷史 -->
+            <div class="control-card">
+                <div class="card-title">
+                    📚 文稿歷史
+                </div>
+                <div class="script-history" id="scriptHistory">
+                    <div style="text-align: center; color: rgba(255,255,255,0.6); padding: 20px;">
+                        尚無保存的文稿
+                    </div>
                 </div>
             </div>
         </div>
@@ -593,20 +688,29 @@
             initializePeer();
             createColorPickers();
             loadSettings();
+            loadScriptHistory(); // 載入文稿歷史
         });
         
         // 初始化 PeerJS
         function initializePeer() {
             try {
-                peer = new Peer({
-                    secure: true,
-                    config: {
-                        'iceServers': [
-                            { urls: 'stun:stun.l.google.com:19302' },
-                            { urls: 'stun:global.stun.twilio.com:3478' }
-                        ]
+                // 嘗試多個 PeerJS 服務器配置
+                const peerConfigs = [
+                    {
+                        // 使用默認 PeerJS 服務器
+                        secure: window.location.protocol === 'https:',
+                        config: {
+                            'iceServers': [
+                                { urls: 'stun:stun.l.google.com:19302' },
+                                { urls: 'stun:global.stun.twilio.com:3478' },
+                                { urls: 'stun:stun1.l.google.com:19302' },
+                                { urls: 'stun:stun2.l.google.com:19302' }
+                            ]
+                        }
                     }
-                });
+                ];
+                
+                peer = new Peer(peerConfigs[0]);
 
                 peer.on('open', function(id) {
                     console.log('控制面板 Peer ID:', id);
@@ -886,6 +990,161 @@
             const script = document.getElementById('scriptEditor').value;
             sendMessage('script-update', { script: script });
             showFeedback('📤 文稿已更新到主顯示器');
+        }
+        
+        // ====== 文稿歷史管理 ======
+        let currentScriptId = null;
+        
+        // 保存文稿
+        function saveScript() {
+            const script = document.getElementById('scriptEditor').value.trim();
+            if (!script) {
+                showFeedback('❌ 請先輸入文稿內容');
+                return;
+            }
+            
+            const scriptName = prompt('請輸入文稿名稱:', `文稿 ${new Date().toLocaleDateString()}`);
+            if (!scriptName) return;
+            
+            const scriptId = currentScriptId || generateScriptId();
+            const scriptData = {
+                id: scriptId,
+                name: scriptName,
+                content: script,
+                createdAt: currentScriptId ? getStoredScripts().find(s => s.id === scriptId)?.createdAt : new Date().toISOString(),
+                updatedAt: new Date().toISOString()
+            };
+            
+            // 儲存到 localStorage
+            const scripts = getStoredScripts();
+            const existingIndex = scripts.findIndex(s => s.id === scriptId);
+            
+            if (existingIndex >= 0) {
+                scripts[existingIndex] = scriptData;
+            } else {
+                scripts.push(scriptData);
+            }
+            
+            localStorage.setItem('teleprompter-scripts', JSON.stringify(scripts));
+            currentScriptId = scriptId;
+            
+            loadScriptHistory();
+            showFeedback('💾 文稿已保存');
+        }
+        
+        // 新增文稿
+        function addNewScript() {
+            document.getElementById('scriptEditor').value = '';
+            currentScriptId = null;
+            updateScriptHistorySelection();
+            document.getElementById('scriptEditor').focus();
+        }
+        
+        // 載入文稿歷史
+        function loadScriptHistory() {
+            const scripts = getStoredScripts()
+                .sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt));
+            
+            const historyContainer = document.getElementById('scriptHistory');
+            
+            if (scripts.length === 0) {
+                historyContainer.innerHTML = `
+                    <div style="text-align: center; color: rgba(255,255,255,0.6); padding: 20px;">
+                        尚無保存的文稿
+                    </div>
+                `;
+                return;
+            }
+            
+            historyContainer.innerHTML = scripts.map(script => {
+                const updatedTime = new Date(script.updatedAt).toLocaleString('zh-TW');
+                const preview = script.content.substring(0, 50) + (script.content.length > 50 ? '...' : '');
+                
+                return `
+                    <div class="script-item ${script.id === currentScriptId ? 'active' : ''}" onclick="loadScript('${script.id}')">
+                        <div class="script-name">${script.name}</div>
+                        <div class="script-time">${updatedTime}</div>
+                        <div class="script-preview">${preview}</div>
+                        <div class="script-actions">
+                            <button onclick="event.stopPropagation(); editScriptName('${script.id}')" title="重新命名">✏️</button>
+                            <button onclick="event.stopPropagation(); deleteScript('${script.id}')" class="delete-btn" title="刪除">🗑️</button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+        
+        // 載入文稿
+        function loadScript(scriptId) {
+            const scripts = getStoredScripts();
+            const script = scripts.find(s => s.id === scriptId);
+            
+            if (script) {
+                document.getElementById('scriptEditor').value = script.content;
+                currentScriptId = scriptId;
+                updateScriptHistorySelection();
+                showFeedback(`📄 已載入文稿: ${script.name}`);
+            }
+        }
+        
+        // 編輯文稿名稱
+        function editScriptName(scriptId) {
+            const scripts = getStoredScripts();
+            const script = scripts.find(s => s.id === scriptId);
+            
+            if (script) {
+                const newName = prompt('修改文稿名稱:', script.name);
+                if (newName && newName !== script.name) {
+                    script.name = newName;
+                    script.updatedAt = new Date().toISOString();
+                    localStorage.setItem('teleprompter-scripts', JSON.stringify(scripts));
+                    loadScriptHistory();
+                    showFeedback('✏️ 文稿名稱已更新');
+                }
+            }
+        }
+        
+        // 刪除文稿
+        function deleteScript(scriptId) {
+            if (confirm('確定要刪除這個文稿嗎？')) {
+                const scripts = getStoredScripts().filter(s => s.id !== scriptId);
+                localStorage.setItem('teleprompter-scripts', JSON.stringify(scripts));
+                
+                if (currentScriptId === scriptId) {
+                    currentScriptId = null;
+                    document.getElementById('scriptEditor').value = '';
+                }
+                
+                loadScriptHistory();
+                showFeedback('🗑️ 文稿已刪除');
+            }
+        }
+        
+        // 工具函數
+        function getStoredScripts() {
+            try {
+                return JSON.parse(localStorage.getItem('teleprompter-scripts') || '[]');
+            } catch (error) {
+                console.error('載入文稿歷史失敗:', error);
+                return [];
+            }
+        }
+        
+        function generateScriptId() {
+            return 'script-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
+        }
+        
+        function updateScriptHistorySelection() {
+            document.querySelectorAll('.script-item').forEach(item => {
+                item.classList.remove('active');
+            });
+            
+            if (currentScriptId) {
+                const activeItem = document.querySelector(`[onclick*="${currentScriptId}"]`);
+                if (activeItem) {
+                    activeItem.classList.add('active');
+                }
+            }
         }
         
         // 快速操作

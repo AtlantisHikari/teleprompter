@@ -217,15 +217,23 @@
         // 初始化 PeerJS
         function initializePeer() {
             try {
-                peer = new Peer({
-                    secure: true,
-                    config: {
-                        'iceServers': [
-                            { urls: 'stun:stun.l.google.com:19302' },
-                            { urls: 'stun:global.stun.twilio.com:3478' }
-                        ]
+                // 嘗試多個 PeerJS 服務器配置
+                const peerConfigs = [
+                    {
+                        // 使用默認 PeerJS 服務器
+                        secure: window.location.protocol === 'https:',
+                        config: {
+                            'iceServers': [
+                                { urls: 'stun:stun.l.google.com:19302' },
+                                { urls: 'stun:global.stun.twilio.com:3478' },
+                                { urls: 'stun:stun1.l.google.com:19302' },
+                                { urls: 'stun:stun2.l.google.com:19302' }
+                            ]
+                        }
                     }
-                });
+                ];
+                
+                peer = new Peer(peerConfigs[0]);
 
                 peer.on('open', function(id) {
                     console.log('Peer ID:', id);
