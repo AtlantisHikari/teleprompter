@@ -459,43 +459,84 @@
         // 初始化 PeerJS
         function initializePeer() {
             try {
-                // 嘗試多個 PeerJS 服務器配置
-                const peerConfigs = [
-                    {
-                        // 使用默認 PeerJS 服務器
-                        secure: window.location.protocol === 'https:',
-                        config: {
-                            'iceServers': [
-                                { urls: 'stun:stun.l.google.com:19302' },
-                                { urls: 'stun:global.stun.twilio.com:3478' },
-                                { urls: 'stun:stun1.l.google.com:19302' },
-                                { urls: 'stun:stun2.l.google.com:19302' }
-                            ]
-                        }
-                    }
-                ];
+                // 使用隨機ID避免衝突
+                const randomId = 'main-' + Math.random().toString(36).substr(2, 9);
                 
-                peer = new Peer(peerConfigs[0]);
+                // PeerJS 配置 - 使用多個可靠的配置選項
+                const peerConfig = {
+                    // 使用隨機生成的ID
+                    key: 'peerjs',
+                    debug: 1, // 啟用調試模式
+                    secure: window.location.protocol === 'https:',
+                    config: {
+                        'iceServers': [
+                            { urls: 'stun:stun.l.google.com:19302' },
+                            { urls: 'stun:global.stun.twilio.com:3478' },
+                            { urls: 'stun:stun1.l.google.com:19302' },
+                            { urls: 'stun:stun2.l.google.com:19302' },
+                            { urls: 'stun:stun3.l.google.com:19302' },
+                            { urls: 'stun:stun4.l.google.com:19302' }
+                        ],
+                        'iceCandidatePoolSize': 10
+                    }
+                };
+                
+                console.log('正在初始化PeerJS，ID:', randomId);
+                peer = new Peer(randomId, peerConfig);
 
                 peer.on('open', function(id) {
-                    console.log('Peer ID:', id);
+                    console.log('✅ PeerJS連線成功，Peer ID:', id);
                     isConnected = true;
+                    currentRoomId = id; // 使用Peer ID作為房間ID
                     updateConnectionStatus();
+                    
+                    // 更新房間ID顯示
+                    const roomDisplay = document.getElementById('currentRoomId');
+                    if (roomDisplay) {
+                        roomDisplay.textContent = id;
+                    }
                 });
 
                 peer.on('connection', function(conn) {
+                    console.log('📱 收到新的連線:', conn.peer);
                     handleNewConnection(conn);
                 });
 
                 peer.on('error', function(err) {
-                    console.error('PeerJS錯誤:', err);
+                    console.error('❌ PeerJS錯誤:', err.type, err.message);
+                    isConnected = false;
                     updateConnectionStatus();
                     
-                    if (err.type === 'network' || err.type === 'server-error') {
-                        setTimeout(() => {
-                            console.log('嘗試重新連接...');
-                            initializePeer();
-                        }, 3000);
+                    // 更詳細的錯誤處理
+                    switch(err.type) {
+                        case 'network':
+                            console.log('🔄 網路錯誤，3秒後重新連接...');
+                            setTimeout(initializePeer, 3000);
+                            break;
+                        case 'server-error':
+                            console.log('🔄 服務器錯誤，5秒後重新連接...');
+                            setTimeout(initializePeer, 5000);
+                            break;
+                        case 'unavailable-id':
+                            console.log('🔄 ID已被使用，重新生成...');
+                            setTimeout(initializePeer, 1000);
+                            break;
+                        case 'peer-unavailable':
+                            console.log('⚠️ 對方不在線或ID不存在');
+                            break;
+                        default:
+                            console.log('⚠️ 其他錯誤:', err.type);
+                    }
+                });
+
+                peer.on('disconnected', function() {
+                    console.log('🔌 PeerJS連線中斷，嘗試重連...');
+                    isConnected = false;
+                    updateConnectionStatus();
+                    
+                    // 嘗試重新連接到PeerJS服務器
+                    if (!peer.destroyed) {
+                        peer.reconnect();
                     }
                 });
             } catch (error) {
