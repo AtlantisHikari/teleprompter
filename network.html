@@ -230,6 +230,186 @@
         .connection-item:last-child {
             margin-bottom: 0;
         }
+        
+        /* 掃描結果樣式 */
+        .scan-results {
+            background: rgba(255, 255, 255, 0.15);
+            padding: 25px;
+            border-radius: 15px;
+            margin: 20px 0;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            backdrop-filter: blur(10px);
+        }
+        
+        .scan-results h3 {
+            margin-bottom: 15px;
+            color: #fff;
+            font-size: 1.2rem;
+        }
+        
+        .peer-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        
+        .peer-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+        }
+        
+        .peer-item span {
+            font-family: monospace;
+            font-size: 14px;
+            color: #fff;
+        }
+        
+        .connect-btn {
+            padding: 8px 16px;
+            background: linear-gradient(45deg, #4CAF50, #45a049);
+            border: none;
+            border-radius: 8px;
+            color: white;
+            cursor: pointer;
+            font-size: 12px;
+            transition: all 0.3s;
+        }
+        
+        .connect-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(76, 175, 80, 0.3);
+        }
+        
+        /* 連接成功樣式 */
+        .connection-success {
+            background: linear-gradient(45deg, #4CAF50, #8BC34A);
+            padding: 30px;
+            border-radius: 15px;
+            margin: 20px 0;
+            text-align: center;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            backdrop-filter: blur(10px);
+        }
+        
+        .connection-success h3 {
+            margin-bottom: 10px;
+            font-size: 1.5rem;
+        }
+        
+        .connection-success p {
+            margin-bottom: 20px;
+            opacity: 0.9;
+        }
+        
+        .success-actions {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+        
+        .success-actions .action-btn {
+            padding: 12px 20px;
+            font-size: 14px;
+            min-width: 150px;
+        }
+        
+        .success-actions .action-btn.secondary {
+            background: rgba(255, 255, 255, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+        
+        .success-actions .action-btn.secondary:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+        
+        /* 手動連接樣式 */
+        .manual-connection {
+            background: rgba(255, 255, 255, 0.15);
+            padding: 25px;
+            border-radius: 15px;
+            margin: 20px 0;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            backdrop-filter: blur(10px);
+        }
+        
+        .manual-connection h3 {
+            margin-bottom: 15px;
+            color: #fff;
+            font-size: 1.2rem;
+        }
+        
+        .manual-input-group {
+            display: flex;
+            gap: 10px;
+            margin: 20px 0;
+            align-items: center;
+        }
+        
+        .manual-input {
+            flex: 1;
+            padding: 12px 15px;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            font-size: 14px;
+            font-family: monospace;
+        }
+        
+        .manual-input::placeholder {
+            color: rgba(255, 255, 255, 0.6);
+        }
+        
+        .manual-input:focus {
+            outline: none;
+            border-color: #4CAF50;
+            box-shadow: 0 0 10px rgba(76, 175, 80, 0.3);
+        }
+        
+        .manual-tips {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 15px;
+            border-radius: 10px;
+            margin-top: 15px;
+            border-left: 4px solid #4CAF50;
+        }
+        
+        .manual-tips p {
+            margin: 8px 0;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+        
+        .manual-tips strong {
+            color: #4CAF50;
+        }
+        
+        .manual-tips a {
+            color: #81C784;
+            text-decoration: underline;
+        }
+        
+        .manual-tips a:hover {
+            color: #A5D6A7;
+        }
+        
+        /* 響應式設計 */
+        @media (max-width: 768px) {
+            .manual-input-group {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            
+            .manual-input {
+                margin-bottom: 10px;
+            }
+        }
     </style>
 </head>
 <body>
@@ -421,15 +601,282 @@
         }
         
         // 測試連接
+        // 全域變數
+        let testPeer = null;
+        let isScanning = false;
+        let foundPeers = [];
+        
         function testConnection() {
-            showNotification('🔍 正在測試 P2P 連接能力...');
+            showNotification('🔍 正在進行完整的P2P連接測試...');
             
             // 檢查 PeerJS 支援
-            if (typeof Peer !== 'undefined') {
-                showNotification('✅ PeerJS 支援正常');
-            } else {
-                showNotification('❌ PeerJS 未載入，請檢查網路連接');
+            if (typeof Peer === 'undefined') {
+                showNotification('❌ PeerJS 未載入，請重新整理頁面');
+                return;
             }
+            
+            showNotification('✅ PeerJS 支援正常');
+            
+            // 測試PeerJS服務器連接
+            testPeerJSServer();
+        }
+        
+        // 測試PeerJS服務器連接
+        function testPeerJSServer() {
+            showNotification('🔄 測試PeerJS服務器連接...');
+            
+            const testId = 'test-' + Math.random().toString(36).substr(2, 9);
+            
+            testPeer = new Peer(testId, {
+                debug: 1,
+                secure: window.location.protocol === 'https:',
+                config: {
+                    'iceServers': [
+                        { urls: 'stun:stun.l.google.com:19302' },
+                        { urls: 'stun:global.stun.twilio.com:3478' }
+                    ]
+                }
+            });
+            
+            const timeout = setTimeout(() => {
+                showNotification('❌ PeerJS服務器連接超時，可能的問題：網路防火牆或服務器故障');
+                if (testPeer) {
+                    testPeer.destroy();
+                    testPeer = null;
+                }
+            }, 10000);
+            
+            testPeer.on('open', function(id) {
+                clearTimeout(timeout);
+                showNotification('✅ PeerJS服務器連接成功！您的設備支援P2P連接');
+                showNotification('🆔 測試Peer ID: ' + id);
+                
+                // 啟動主顯示器掃描
+                scanForMainDisplays();
+            });
+            
+            testPeer.on('error', function(err) {
+                clearTimeout(timeout);
+                showNotification('❌ 連接失敗: ' + err.type + ' - ' + err.message);
+                
+                switch(err.type) {
+                    case 'network':
+                        showNotification('🔧 建議：檢查網路連接，可能需要關閉VPN或防火牆');
+                        break;
+                    case 'server-error':
+                        showNotification('🔧 建議：PeerJS服務器暫時不可用，請稍後再試');
+                        break;
+                    default:
+                        showNotification('🔧 建議：請嘗試重新整理頁面');
+                }
+            });
+        }
+        
+        // 掃描可用的主顯示器
+        function scanForMainDisplays() {
+            if (isScanning) return;
+            
+            isScanning = true;
+            foundPeers = [];
+            showNotification('🔍 正在掃描附近的主顯示器...');
+            showNotification('💡 提示：自動掃描成功率較低，建議直接輸入主顯示器的Peer ID');
+            
+            // 創建掃描結果顯示區域和手動輸入選項
+            updateScanResults();
+            
+            // 顯示手動輸入選項
+            showManualConnectionOption();
+            
+            // 簡化掃描 - 只嘗試最常見的模式
+            const commonPatterns = ['main-'];
+            let scanCount = 0;
+            const maxScans = 5; // 減少掃描次數
+            
+            commonPatterns.forEach(pattern => {
+                for (let i = 0; i < maxScans; i++) {
+                    setTimeout(() => {
+                        // 使用更現實的ID模式
+                        const commonSuffixes = ['abc123', '123456', 'test', 'demo', '001'];
+                        const testId = pattern + (commonSuffixes[i] || Math.random().toString(36).substr(2, 6));
+                        attemptPeerConnection(testId);
+                        scanCount++;
+                        
+                        if (scanCount >= maxScans) {
+                            setTimeout(() => {
+                                finalizeScan();
+                            }, 2000);
+                        }
+                    }, i * 1000);
+                }
+            });
+        }
+        
+        // 顯示手動連接選項
+        function showManualConnectionOption() {
+            const manualHtml = `
+                <div class="manual-connection">
+                    <h3>🎯 手動連接</h3>
+                    <p>如果您知道主顯示器的Peer ID，請直接輸入：</p>
+                    <div class="manual-input-group">
+                        <input type="text" id="manualPeerIdInput" placeholder="輸入Peer ID (例如: main-abc123)" 
+                               class="manual-input">
+                        <button onclick="connectToManualPeer()" class="connect-btn">
+                            🔗 連接
+                        </button>
+                    </div>
+                    <div class="manual-tips">
+                        <p><strong>💡 如何獲取Peer ID：</strong></p>
+                        <p>1. 在主顯示器設備開啟 <a href="main.html" target="_blank">主顯示器頁面</a></p>
+                        <p>2. 查看左上角顯示的房間ID，這就是Peer ID</p>
+                        <p>3. 將此ID輸入上方輸入框</p>
+                    </div>
+                </div>
+            `;
+            
+            document.querySelector('.container').insertAdjacentHTML('beforeend', manualHtml);
+        }
+        
+        // 手動連接到指定Peer
+        function connectToManualPeer() {
+            const input = document.getElementById('manualPeerIdInput');
+            const peerId = input.value.trim();
+            
+            if (!peerId) {
+                showNotification('❌ 請輸入Peer ID');
+                return;
+            }
+            
+            showNotification('🔗 正在連接到 ' + peerId + '...');
+            connectToPeer(peerId);
+        }
+        
+        // 嘗試連接到特定Peer
+        function attemptPeerConnection(peerId) {
+            if (!testPeer || testPeer.destroyed) return;
+            
+            const conn = testPeer.connect(peerId);
+            
+            conn.on('open', function() {
+                foundPeers.push({
+                    id: peerId,
+                    status: '在線',
+                    type: '主顯示器'
+                });
+                updateScanResults();
+                showNotification('✅ 發現主顯示器: ' + peerId);
+            });
+            
+            conn.on('error', function(err) {
+                // 靜默處理連接失敗，這是掃描的正常結果
+            });
+        }
+        
+        // 更新掃描結果顯示
+        function updateScanResults() {
+            let resultsHtml = '<div class="scan-results"><h3>🔍 掃描結果</h3>';
+            
+            if (foundPeers.length === 0) {
+                resultsHtml += '<p>正在掃描中...</p>';
+            } else {
+                resultsHtml += '<div class="peer-list">';
+                foundPeers.forEach(peer => {
+                    resultsHtml += `
+                        <div class="peer-item">
+                            <span>📺 ${peer.id}</span>
+                            <button onclick="connectToPeer('${peer.id}')" class="connect-btn">
+                                🔗 連接
+                            </button>
+                        </div>
+                    `;
+                });
+                resultsHtml += '</div>';
+            }
+            
+            resultsHtml += '</div>';
+            
+            // 將結果插入到頁面中
+            const existingResults = document.querySelector('.scan-results');
+            if (existingResults) {
+                existingResults.outerHTML = resultsHtml;
+            } else {
+                document.querySelector('.container').insertAdjacentHTML('beforeend', resultsHtml);
+            }
+        }
+        
+        // 完成掃描
+        function finalizeScan() {
+            isScanning = false;
+            
+            if (foundPeers.length === 0) {
+                showNotification('🔍 掃描完成：未發現可用的主顯示器');
+                showNotification('💡 建議：請先在其他設備開啟主顯示器，然後重新掃描');
+            } else {
+                showNotification(`✅ 掃描完成：發現 ${foundPeers.length} 個主顯示器`);
+            }
+            
+            updateScanResults();
+        }
+        
+        // 連接到特定Peer
+        function connectToPeer(peerId) {
+            showNotification('🔗 正在連接到 ' + peerId + '...');
+            
+            if (!testPeer || testPeer.destroyed) {
+                showNotification('❌ 請先執行連接測試');
+                return;
+            }
+            
+            const conn = testPeer.connect(peerId);
+            
+            conn.on('open', function() {
+                showNotification('✅ 連接成功！');
+                showNotification('🚀 您現在可以控制主顯示器了');
+                
+                // 顯示成功連接的操作選項
+                showConnectionSuccess(peerId);
+            });
+            
+            conn.on('error', function(err) {
+                showNotification('❌ 連接失敗: ' + err.type);
+            });
+        }
+        
+        // 顯示連接成功後的選項
+        function showConnectionSuccess(peerId) {
+            const successHtml = `
+                <div class="connection-success">
+                    <h3>🎉 連接成功！</h3>
+                    <p>已連接到主顯示器: ${peerId}</p>
+                    <div class="success-actions">
+                        <button onclick="openControlPanel()" class="action-btn">
+                            🎮 開啟控制面板
+                        </button>
+                        <button onclick="disconnectAndReset()" class="action-btn secondary">
+                            🔄 重新掃描
+                        </button>
+                    </div>
+                </div>
+            `;
+            
+            document.querySelector('.container').insertAdjacentHTML('beforeend', successHtml);
+        }
+        
+        // 斷開連接並重置
+        function disconnectAndReset() {
+            if (testPeer) {
+                testPeer.destroy();
+                testPeer = null;
+            }
+            
+            // 清除結果顯示
+            const results = document.querySelector('.scan-results');
+            const success = document.querySelector('.connection-success');
+            if (results) results.remove();
+            if (success) success.remove();
+            
+            foundPeers = [];
+            isScanning = false;
+            showNotification('🔄 已重置，可以重新開始測試');
         }
         
         // 重新整理頁面
