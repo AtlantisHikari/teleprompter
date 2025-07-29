@@ -129,6 +129,169 @@
                 padding: 8px 12px;
             }
         }
+        
+        /* 設定按鈕 */
+        .settings-toggle {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.7);
+            border: 2px solid #666;
+            color: white;
+            padding: 10px;
+            border-radius: 8px;
+            cursor: pointer;
+            z-index: 1001;
+            font-size: 16px;
+            transition: all 0.3s;
+        }
+        
+        .settings-toggle:hover {
+            background: rgba(0, 0, 0, 0.9);
+            border-color: #999;
+        }
+        
+        /* 設定面板 */
+        .settings-panel {
+            position: fixed;
+            top: 0;
+            right: -420px;
+            width: 420px;
+            height: 100vh;
+            background: rgba(30, 30, 30, 0.95);
+            backdrop-filter: blur(10px);
+            transition: right 0.3s ease;
+            z-index: 1000;
+            overflow-y: auto;
+            padding: 20px;
+            border-left: 2px solid #444;
+        }
+        
+        .settings-panel.open {
+            right: 0;
+        }
+        
+        /* 設定面板內容樣式 */
+        .setting-group {
+            margin-bottom: 25px;
+            padding: 15px;
+            background: rgba(50, 50, 50, 0.8);
+            border-radius: 8px;
+            border: 1px solid #555;
+        }
+        
+        .setting-label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: bold;
+            color: #fff;
+        }
+        
+        .setting-input {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #666;
+            border-radius: 4px;
+            background: #222;
+            color: white;
+            font-size: 14px;
+        }
+        
+        .slider-group {
+            margin-bottom: 20px;
+        }
+        
+        .slider-label {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+            font-size: 14px;
+            font-weight: bold;
+        }
+        
+        .slider-value {
+            background: rgba(255, 255, 255, 0.2);
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+        }
+        
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+        }
+        
+        .btn {
+            padding: 10px 15px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s;
+            flex: 1;
+        }
+        
+        .btn-primary { background: #007bff; color: white; }
+        .btn-success { background: #28a745; color: white; }
+        .btn-danger { background: #dc3545; color: white; }
+        .btn-warning { background: #ffc107; color: black; }
+        
+        .btn:hover {
+            opacity: 0.8;
+            transform: translateY(-1px);
+        }
+        
+        /* 顏色選擇器 */
+        .color-picker {
+            display: grid;
+            grid-template-columns: repeat(8, 1fr);
+            gap: 4px;
+            margin-top: 10px;
+        }
+        
+        .color-option {
+            width: 100%;
+            height: 24px;
+            border: 2px solid #666;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.2s;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .color-option:hover {
+            transform: scale(1.05);
+            border-color: #fff;
+        }
+        
+        .color-option.selected {
+            border-color: #2196F3;
+            border-width: 3px;
+            box-shadow: 0 0 8px rgba(33, 150, 243, 0.6);
+        }
+        
+        .color-option.selected::after {
+            content: '✓';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: white;
+            font-weight: bold;
+            font-size: 12px;
+            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
+        }
+        
+        /* 響應式設計 */
+        @media (max-width: 768px) {
+            .settings-panel {
+                width: 100%;
+                right: -100%;
+            }
+        }
     </style>
 </head>
 <body>
@@ -147,6 +310,85 @@
     <div class="connection-status">
         <div id="connectionStatus">🔴 離線</div>
         <div>設備: <span id="deviceCount">0</span></div>
+    </div>
+    
+    <!-- 設定按鈕 -->
+    <button class="settings-toggle" onclick="toggleSettings()">⚙️ 設定</button>
+    
+    <!-- 設定面板 -->
+    <div class="settings-panel" id="settingsPanel">
+        <h2 style="margin-bottom: 20px; color: #fff;">提詞機設定</h2>
+        
+        <!-- 播放控制 -->
+        <div class="setting-group">
+            <label class="setting-label">播放控制</label>
+            <div class="button-group">
+                <button class="btn btn-success" onclick="playScript()">▶ 播放</button>
+                <button class="btn btn-warning" onclick="pauseScript()">⏸ 暫停</button>
+                <button class="btn btn-danger" onclick="stopScript()">⏹ 停止</button>
+            </div>
+        </div>
+        
+        <!-- 滾動設定 -->
+        <div class="setting-group">
+            <label class="setting-label">⚡ 滾動設定</label>
+            <div class="slider-group">
+                <div class="slider-label">
+                    <span>滾動速度</span>
+                    <span class="slider-value" id="speedValue">1.0</span>
+                </div>
+                <input type="range" min="0.1" max="5" step="0.1" value="1" class="setting-input" 
+                       id="speedSlider" oninput="changeSpeed(this.value)">
+            </div>
+            <div class="slider-group">
+                <div class="slider-label">
+                    <span>字體大小</span>
+                    <span class="slider-value" id="fontSizeValue">5</span>
+                </div>
+                <input type="range" min="1" max="10" step="1" value="5" class="setting-input" 
+                       id="fontSizeSlider" oninput="changeFontSize(this.value)">
+            </div>
+        </div>
+        
+        <!-- 文字顏色 -->
+        <div class="setting-group">
+            <label class="setting-label">文字顏色</label>
+            <div class="color-picker" id="textColorPicker"></div>
+        </div>
+        
+        <!-- 背景顏色 -->
+        <div class="setting-group">
+            <label class="setting-label">背景顏色</label>
+            <div class="color-picker" id="bgColorPicker"></div>
+        </div>
+        
+        <!-- 鏡像模式 -->
+        <div class="setting-group">
+            <label class="setting-label">鏡像模式</label>
+            <div class="button-group">
+                <button class="btn btn-primary" onclick="setMirror('none')">正常</button>
+                <button class="btn btn-primary" onclick="setMirror('horizontal')">水平</button>
+            </div>
+            <div class="button-group" style="margin-top: 5px;">
+                <button class="btn btn-primary" onclick="setMirror('vertical')">垂直</button>
+                <button class="btn btn-primary" onclick="setMirror('both')">雙向</button>
+            </div>
+        </div>
+        
+        <!-- 文稿管理 -->
+        <div class="setting-group">
+            <label class="setting-label">文稿內容</label>
+            <textarea id="scriptEditor" rows="8" class="setting-input" 
+                      placeholder="在此輸入文稿內容..."></textarea>
+            <div class="button-group">
+                <button class="btn btn-primary" onclick="applyScript()">投影到主畫面</button>
+            </div>
+        </div>
+        
+        <!-- 關閉按鈕 -->
+        <button class="btn btn-danger" onclick="toggleSettings()" style="width: 100%; margin-top: 20px;">
+            關閉設定
+        </button>
     </div>
     
     <!-- 主顯示容器 -->
@@ -652,9 +894,126 @@
         // 頁面關閉前保存設定
         window.addEventListener('beforeunload', saveSettings);
         
+        // 設定面板控制
+        function toggleSettings() {
+            const settingsPanel = document.getElementById('settingsPanel');
+            if (settingsPanel) {
+                settingsPanel.classList.toggle('open');
+            }
+        }
+        
+        // 應用文稿到主畫面
+        function applyScript() {
+            const scriptText = document.getElementById('scriptEditor').value;
+            if (scriptText.trim()) {
+                content.textContent = scriptText;
+                // 如果有連接的控制面板，也同步更新
+                connections.forEach(conn => {
+                    sendToConnection(conn, 'script-update', { script: scriptText });
+                });
+            }
+        }
+        
+        // 顏色預設
+        const COMMON_COLORS = [
+            '#FFFFFF', '#F5F5F5', '#EEEEEE', '#DDDDDD', '#BBBBBB', '#999999', '#666666', '#000000',
+            '#FFFEF7', '#FFF8DC', '#FFFFE0', '#FFFF99', '#FFFF00', '#FFD700', '#FFA500', '#FF8C00',
+            '#FFEEE6', '#FFCC99', '#FFB366', '#FF9933', '#FF7F00', '#FF6347', '#D2691E', '#8B4513',
+            '#FFE4E1', '#FFB6C1', '#FF69B4', '#FF1493', '#DC143C', '#B22222', '#8B0000', '#4B0000',
+            '#E6F3FF', '#87CEEB', '#00BFFF', '#1E90FF', '#0066CC', '#003399', '#191970', '#000080',
+            '#E6FFE6', '#90EE90', '#00FF00', '#32CD32', '#20B2AA', '#228B22', '#006400', '#013220',
+            '#F0E6FF', '#DDA0DD', '#BA55D3', '#9932CC', '#8A2BE2', '#663399', '#4B0082', '#2E004B'
+        ];
+        
+        // 建立顏色選擇器
+        function createColorPickers() {
+            const textPicker = document.getElementById('textColorPicker');
+            const bgPicker = document.getElementById('bgColorPicker');
+            
+            if (textPicker && bgPicker) {
+                COMMON_COLORS.forEach(color => {
+                    // 文字顏色選擇器
+                    const textOption = document.createElement('div');
+                    textOption.className = 'color-option';
+                    textOption.style.backgroundColor = color;
+                    textOption.onclick = () => {
+                        setTextColor(color);
+                        updateColorSelection('textColorPicker', color);
+                    };
+                    textOption.title = color;
+                    textPicker.appendChild(textOption);
+                    
+                    // 背景顏色選擇器
+                    const bgOption = document.createElement('div');
+                    bgOption.className = 'color-option';
+                    bgOption.style.backgroundColor = color;
+                    bgOption.onclick = () => {
+                        setBackgroundColor(color);
+                        updateColorSelection('bgColorPicker', color);
+                    };
+                    bgOption.title = color;
+                    bgPicker.appendChild(bgOption);
+                });
+            }
+        }
+        
+        // 更新顏色選擇狀態
+        function updateColorSelection(pickerId, selectedColor) {
+            const picker = document.getElementById(pickerId);
+            if (!picker) return;
+            
+            picker.querySelectorAll('.color-option').forEach(option => {
+                option.classList.remove('selected');
+                if (option.style.backgroundColor === selectedColor ||
+                    option.title === selectedColor) {
+                    option.classList.add('selected');
+                }
+            });
+        }
+        
+        // 更新速度顯示
+        function updateSpeedDisplay() {
+            const speedValue = document.getElementById('speedValue');
+            if (speedValue) {
+                speedValue.textContent = scrollSpeed.toFixed(1);
+            }
+        }
+        
+        // 更新字體大小顯示
+        function updateFontSizeDisplay() {
+            const fontSizeValue = document.getElementById('fontSizeValue');
+            if (fontSizeValue) {
+                fontSizeValue.textContent = fontSize;
+            }
+        }
+        
+        // 修改changeSpeed函數以更新顯示
+        const originalChangeSpeed = changeSpeed;
+        changeSpeed = function(speed) {
+            originalChangeSpeed(speed);
+            updateSpeedDisplay();
+        };
+        
+        // 修改changeFontSize函數以更新顯示
+        const originalChangeFontSize = changeFontSize;
+        changeFontSize = function(size) {
+            originalChangeFontSize(size);
+            updateFontSizeDisplay();
+        };
+        
+        // 初始化設定面板
+        function initializeSettings() {
+            createColorPickers();
+            updateSpeedDisplay();
+            updateFontSizeDisplay();
+            updateColorSelection('textColorPicker', textColor);
+            updateColorSelection('bgColorPicker', backgroundColor);
+        }
+        
         // 初始化行數統計
         window.addEventListener('load', function() {
             setTimeout(updateScriptLines, 500);
+            initializeSettings();
         });
     </script>
     
