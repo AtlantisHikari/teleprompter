@@ -607,6 +607,16 @@
         let foundPeers = [];
         
         function testConnection() {
+            // 如果正在測試，先清理
+            if (testPeer && !testPeer.destroyed) {
+                testPeer.destroy();
+                testPeer = null;
+            }
+            
+            // 重置狀態
+            isScanning = false;
+            foundPeers = [];
+            
             showNotification('🔍 正在進行完整的P2P連接測試...');
             
             // 檢查 PeerJS 支援
@@ -915,14 +925,47 @@
                 { name: 'WebRTC', support: !!(window.RTCPeerConnection || window.webkitRTCPeerConnection) },
                 { name: 'localStorage', support: !!window.localStorage },
                 { name: 'WebSocket', support: !!window.WebSocket },
-                { name: 'Fetch API', support: !!window.fetch }
+                { name: 'Fetch API', support: !!window.fetch },
+                { name: 'Service Worker', support: !!navigator.serviceWorker },
+                { name: 'Clipboard API', support: !!navigator.clipboard },
+                { name: 'Fullscreen API', support: !!document.fullscreenEnabled }
             ];
             
             const results = features.map(f => 
                 `${f.support ? '✅' : '❌'} ${f.name}: ${f.support ? '支援' : '不支援'}`
             ).join('\\n');
             
-            alert('瀏覽器支援檢查：\\n\\n' + results);
+            const browserInfo = [
+                '瀏覽器支援檢查結果：',
+                '',
+                results,
+                '',
+                '建議：',
+                '• Chrome 80+ 或 Firefox 75+ 獲得最佳體驗',
+                '• 確保啟用JavaScript和WebRTC',
+                '• 如有問題請嘗試重新整理頁面'
+            ].join('\\n');
+            
+            // 顯示在彈窗中
+            const popup = window.open('', '_blank', 'width=500,height=400,scrollbars=yes');
+            popup.document.write(`
+                <html>
+                <head>
+                    <title>瀏覽器支援檢查</title>
+                    <style>
+                        body { font-family: monospace; padding: 20px; line-height: 1.6; }
+                        .support { color: green; }
+                        .no-support { color: red; }
+                    </style>
+                </head>
+                <body>
+                    <pre>${browserInfo}</pre>
+                    <button onclick="window.close()" style="margin-top: 20px; padding: 10px 20px;">關閉</button>
+                </body>
+                </html>
+            `);
+            
+            showNotification('📊 瀏覽器支援檢查已完成');
         }
         
         // 匯出設定
@@ -930,17 +973,51 @@
             const settings = {
                 timestamp: new Date().toISOString(),
                 platform: 'GitHub Pages (P2P)',
-                version: '1.0.0',
+                version: '2.0.0',
+                deployment: {
+                    type: 'Static GitHub Pages',
+                    repository: 'AtlantisHikari/teleprompter',
+                    branch: 'main',
+                    path: '02-github-pages'
+                },
                 urls: {
                     main: 'https://atlantishikari.github.io/teleprompter/main.html',
                     control: 'https://atlantishikari.github.io/teleprompter/control.html',
                     network: 'https://atlantishikari.github.io/teleprompter/network.html'
+                },
+                features: {
+                    p2p_connection: true,
+                    cross_platform: true,
+                    real_time_sync: true,
+                    script_history: true,
+                    line_control: true,
+                    mirror_modes: ['normal', 'horizontal', 'vertical', 'both'],
+                    max_script_length: 6000
+                },
+                browser_requirements: {
+                    chrome: '80+',
+                    firefox: '75+',
+                    safari: '14+',
+                    edge: '80+'
                 }
             };
             
             const settingsStr = JSON.stringify(settings, null, 2);
+            
+            // 創建下載連結
+            const blob = new Blob([settingsStr], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `teleprompter-settings-${new Date().toISOString().split('T')[0]}.json`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            
+            // 同時複製到剪貼板
             copyToClipboard(settingsStr);
-            showNotification('💾 設定已複製到剪貼板');
+            showNotification('💾 設定已下載並複製到剪貼板');
         }
         
         // 顯示除錯資訊
