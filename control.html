@@ -930,11 +930,13 @@
         function syncSettings(settings) {
             if (settings.textColor) {
                 currentSettings.textColor = settings.textColor;
-                updateColorSelection('textColorPicker', settings.textColor);
+                // 確保顏色選擇器已經創建後再更新選中狀態
+                setTimeout(() => updateColorSelection('textColorPicker', settings.textColor), 100);
             }
             if (settings.backgroundColor) {
                 currentSettings.backgroundColor = settings.backgroundColor;
-                updateColorSelection('bgColorPicker', settings.backgroundColor);
+                // 確保顏色選擇器已經創建後再更新選中狀態
+                setTimeout(() => updateColorSelection('bgColorPicker', settings.backgroundColor), 100);
             }
             if (settings.fontSize) {
                 currentSettings.fontSize = settings.fontSize;
@@ -982,11 +984,11 @@
             
             switch (action) {
                 case 'play':
-                    sendMessage('play-pause', { isPlaying: true });
+                    sendMessage('play', {});
                     showFeedback('▶️ 開始播放');
                     break;
                 case 'pause':
-                    sendMessage('play-pause', { isPlaying: false });
+                    sendMessage('pause', {});
                     showFeedback('⏸️ 暫停播放');
                     break;
                 case 'stop':
@@ -1317,11 +1319,20 @@
         
         function updateColorSelection(pickerId, selectedColor) {
             const picker = document.getElementById(pickerId);
+            if (!picker) return;
+            
             picker.querySelectorAll('.color-option').forEach(option => {
                 option.classList.remove('selected');
-                if (option.style.backgroundColor === selectedColor ||
-                    rgbToHex(option.style.backgroundColor) === selectedColor) {
+                
+                // 多種格式比較
+                const optionColor = option.style.backgroundColor;
+                const optionHex = rgbToHex(optionColor);
+                
+                if (optionColor === selectedColor || 
+                    optionHex === selectedColor ||
+                    optionHex.toLowerCase() === selectedColor.toLowerCase()) {
                     option.classList.add('selected');
+                    console.log('顏色匹配成功:', pickerId, selectedColor, optionHex);
                 }
             });
         }

@@ -31,6 +31,39 @@
             justify-content: center;
         }
         
+        /* 行號顯示 */
+        .line-numbers {
+            position: absolute;
+            left: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 1vh;
+            font-size: 2vh;
+            color: rgba(255, 255, 255, 0.3);
+            font-family: monospace;
+            z-index: 10;
+            line-height: 1.6;
+        }
+        
+        .line-number {
+            padding: 0.2em 0.5em;
+            border-radius: 0.3em;
+            background: rgba(255, 255, 255, 0.05);
+            min-width: 3em;
+            text-align: center;
+            transition: all 0.3s;
+        }
+        
+        .line-number.current {
+            background: rgba(76, 175, 80, 0.3);
+            color: #4CAF50;
+            transform: scale(1.1);
+            box-shadow: 0 0 10px rgba(76, 175, 80, 0.3);
+        }
+        
         .teleprompter-content {
             position: absolute;
             width: 100%;
@@ -483,6 +516,9 @@
     
     <!-- 主顯示容器 -->
     <div class="teleprompter-container">
+        <!-- 行號顯示 -->
+        <div class="line-numbers" id="lineNumbers"></div>
+        
         <div class="teleprompter-content font-size-5" id="content">
             歡迎使用智慧提詞機<br>
             請開啟控制面板設定文稿內容<br><br>
@@ -823,7 +859,11 @@
         // 發送當前設定
         function sendCurrentSettings(conn) {
             sendToConnection(conn, 'settings-response', {
-                textColor, backgroundColor, fontSize, scrollSpeed, mirrorMode,
+                textColor: textColor,
+                backgroundColor: backgroundColor,
+                fontSize: fontSize,
+                scrollSpeed: scrollSpeed,
+                mirrorMode: mirrorMode,
                 script: content.textContent,
                 totalLines: scriptLines.length,
                 currentLine: currentLineIndex + 1,
@@ -916,6 +956,9 @@
             // 重新計算行數並更新
             updateScriptLines();
             
+            // 字體大小改變時需要重新計算行號顯示
+            setTimeout(updateLineNumbers, 100);
+            
             // 通知連接的設備
             broadcastMessage('font-size-change', { fontSize: fontSize });
         }
@@ -960,10 +1003,51 @@
             // 更新行數顯示
             updateLineDisplays();
             
+            // 更新行號顯示
+            updateLineNumbers();
+            
             // 通知所有連接的設備
             broadcastMessage('total-lines', { totalLines: scriptLines.length });
             
             console.log('文稿更新，總共', scriptLines.length, '行');
+        }
+        
+        // 更新行號顯示
+        function updateLineNumbers() {
+            const lineNumbersContainer = document.getElementById('lineNumbers');
+            if (!lineNumbersContainer) return;
+            
+            // 清空現有行號
+            lineNumbersContainer.innerHTML = '';
+            
+            // 根據螢幕高度和字體大小計算可見行數
+            const viewportHeight = window.innerHeight;
+            const fontSize = parseFloat(getComputedStyle(content).fontSize);
+            const lineHeight = fontSize * 1.6; // line-height: 1.6
+            const maxVisibleLines = Math.floor(viewportHeight / lineHeight) - 2;
+            
+            // 計算顯示範圍
+            let startLine = Math.max(1, currentLineIndex + 1 - Math.floor(maxVisibleLines / 2));
+            let endLine = Math.min(scriptLines.length, startLine + maxVisibleLines - 1);
+            
+            // 調整起始行以確保總是顯示足夠的行數
+            if (endLine - startLine + 1 < maxVisibleLines && scriptLines.length >= maxVisibleLines) {
+                startLine = Math.max(1, endLine - maxVisibleLines + 1);
+            }
+            
+            // 生成行號
+            for (let i = startLine; i <= endLine; i++) {
+                const lineNumberDiv = document.createElement('div');
+                lineNumberDiv.className = 'line-number';
+                lineNumberDiv.textContent = i;
+                
+                // 高亮當前行
+                if (i === currentLineIndex + 1) {
+                    lineNumberDiv.classList.add('current');
+                }
+                
+                lineNumbersContainer.appendChild(lineNumberDiv);
+            }
         }
         
         function jumpToLine(lineNumber) {
@@ -1006,6 +1090,9 @@
             if (totalLinesDisplay) {
                 totalLinesDisplay.textContent = scriptLines.length;
             }
+            
+            // 同時更新行號顯示
+            updateLineNumbers();
         }
         
         function previousLine() {
