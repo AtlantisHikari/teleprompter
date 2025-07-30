@@ -763,31 +763,7 @@
         }
         
         // 處理新連接
-        function handleNewConnection(conn) {
-            conn.on('open', function() {
-                connections.set(conn.peer, conn);
-                updateDeviceCount();
-                console.log('新設備已連接:', conn.peer);
-                
-                // 發送當前設定給新連接的設備
-                sendToConnection(conn, 'settings-sync', {
-                    textColor, backgroundColor, fontSize, scrollSpeed, mirrorMode,
-                    script: content.textContent,
-                    totalLines: scriptLines.length,
-                    currentLine: currentLineIndex + 1
-                });
-            });
-
-            conn.on('data', function(message) {
-                handleMessage(message, conn);
-            });
-
-            conn.on('close', function() {
-                connections.delete(conn.peer);
-                updateDeviceCount();
-                console.log('設備已斷開:', conn.peer);
-            });
-        }
+        // 重複的函數已移除，使用下面更完整的版本
         
         // 處理新連線
         function handleNewConnection(conn) {
@@ -1594,25 +1570,7 @@
         // 頁面關閉前保存設定
         window.addEventListener('beforeunload', saveSettings);
         
-        // 設定面板控制
-        function toggleSettings() {
-            const settingsPanel = document.getElementById('settingsPanel');
-            if (settingsPanel) {
-                settingsPanel.classList.toggle('open');
-            }
-        }
-        
-        // 應用文稿到主畫面
-        function applyScript() {
-            const scriptText = document.getElementById('scriptEditor').value;
-            if (scriptText.trim()) {
-                content.textContent = scriptText;
-                // 如果有連接的控制面板，也同步更新
-                connections.forEach(conn => {
-                    sendToConnection(conn, 'script-update', { script: scriptText });
-                });
-            }
-        }
+        // 移除重複的函數定義（已在前面定義）
         
         // 顏色預設
         const COMMON_COLORS = [
