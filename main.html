@@ -430,6 +430,9 @@
         let isHost = false;
         let roomId = '';
         let isConnected = false;
+        let reconnectAttempts = 0;
+        let maxReconnectAttempts = 5;
+        let reconnectDelay = 1000;
         
         // 提詞機設定
         let isPlaying = false;
@@ -456,9 +459,46 @@
             generateRoomId();
         });
         
+        // 檢查瀏覽器兼容性
+        function checkBrowserCompatibility() {
+            const issues = [];
+            
+            // 檢查 WebRTC 支援
+            if (!window.RTCPeerConnection && !window.webkitRTCPeerConnection && !window.mozRTCPeerConnection) {
+                issues.push('WebRTC不支援');
+            }
+            
+            // 檢查 WebSocket 支援
+            if (!window.WebSocket) {
+                issues.push('WebSocket不支援');
+            }
+            
+            // 檢查 localStorage 支援
+            if (!window.localStorage) {
+                issues.push('localStorage不支援');
+            }
+            
+            // 檢查基本 ES6 功能
+            try {
+                new Map();
+                new Set();
+            } catch (e) {
+                issues.push('ES6功能不完整');
+            }
+            
+            return issues;
+        }
+        
         // 初始化 PeerJS
         function initializePeer() {
             try {
+                // 檢查瀏覽器兼容性
+                const compatibilityIssues = checkBrowserCompatibility();
+                if (compatibilityIssues.length > 0) {
+                    console.warn('⚠️ 瀏覽器兼容性問題:', compatibilityIssues.join(', '));
+                    showNotification(`⚠️ 瀏覽器兼容性問題: ${compatibilityIssues.join(', ')}，建議使用Chrome或Firefox最新版本`);
+                }
+                
                 // 檢查 PeerJS 是否成功載入
                 if (typeof Peer === 'undefined') {
                     console.error('❌ PeerJS 庫未成功載入，請檢查網路連接');
@@ -478,14 +518,34 @@
                     secure: window.location.protocol === 'https:',
                     config: {
                         'iceServers': [
+                            // Google STUN 服务器（全球覆盖）
                             { urls: 'stun:stun.l.google.com:19302' },
-                            { urls: 'stun:global.stun.twilio.com:3478' },
                             { urls: 'stun:stun1.l.google.com:19302' },
                             { urls: 'stun:stun2.l.google.com:19302' },
                             { urls: 'stun:stun3.l.google.com:19302' },
-                            { urls: 'stun:stun4.l.google.com:19302' }
+                            { urls: 'stun:stun4.l.google.com:19302' },
+                            
+                            // Twilio STUN 服务器（可靠性高）
+                            { urls: 'stun:global.stun.twilio.com:3478' },
+                            
+                            // Mozilla STUN 服务器（Firefox 优化）
+                            { urls: 'stun:stun.mozilla.org:3478' },
+                            
+                            // OpenRelay STUN 服务器（开源稳定）
+                            { urls: 'stun:openrelay.metered.ca:80' },
+                            
+                            // CloudFlare STUN 服务器（低延迟）
+                            { urls: 'stun:stun.cloudflare.com:3478' },
+                            
+                            // 备用 STUN 服务器（特殊网络环境）
+                            { urls: 'stun:relay.webrtc.win:3478' },
+                            { urls: 'stun:stun.nextcloud.com:443' }
                         ],
-                        'iceCandidatePoolSize': 10
+                        'iceCandidatePoolSize': 15,
+                        'iceTransportPolicy': 'all',
+                        'bundlePolicy': 'balanced',
+                        'rtcpMuxPolicy': 'require',
+                        'sdpSemantics': 'unified-plan'
                     }
                 };
                 
@@ -496,6 +556,7 @@
                     console.log('✅ PeerJS連線成功，Peer ID:', id);
                     isConnected = true;
                     currentRoomId = id; // 使用Peer ID作為房間ID
+                    reconnectAttempts = 0; // 成功連接後重置重連計數器
                     updateConnectionStatus();
                     
                     // 更新房間ID顯示
@@ -503,6 +564,8 @@
                     if (roomDisplay) {
                         roomDisplay.textContent = id;
                     }
+                    
+                    showNotification('✅ 主顯示器已上線，等待控制設備連接');
                 });
 
                 peer.on('connection', function(conn) {
@@ -515,25 +578,48 @@
                     isConnected = false;
                     updateConnectionStatus();
                     
-                    // 更詳細的錯誤處理
-                    switch(err.type) {
-                        case 'network':
-                            console.log('🔄 網路錯誤，3秒後重新連接...');
-                            setTimeout(initializePeer, 3000);
-                            break;
-                        case 'server-error':
-                            console.log('🔄 服務器錯誤，5秒後重新連接...');
-                            setTimeout(initializePeer, 5000);
-                            break;
-                        case 'unavailable-id':
-                            console.log('🔄 ID已被使用，重新生成...');
-                            setTimeout(initializePeer, 1000);
-                            break;
-                        case 'peer-unavailable':
-                            console.log('⚠️ 對方不在線或ID不存在');
-                            break;
-                        default:
-                            console.log('⚠️ 其他錯誤:', err.type);
+                    // 智能重連機制
+                    if (reconnectAttempts < maxReconnectAttempts) {
+                        const delay = reconnectDelay * Math.pow(2, reconnectAttempts); // 指數退避
+                        reconnectAttempts++;
+                        
+                        switch(err.type) {
+                            case 'network':
+                                console.log(`🔄 網路錯誤，${delay}ms後重新連接... (嘗試 ${reconnectAttempts}/${maxReconnectAttempts})`);
+                                showNotification(`🔄 網路連接中斷，正在重連... (${reconnectAttempts}/${maxReconnectAttempts})`);
+                                setTimeout(() => {
+                                    if (peer) peer.destroy();
+                                    initializePeer();
+                                }, delay);
+                                break;
+                            case 'server-error':
+                                console.log(`🔄 服務器錯誤，${delay}ms後重新連接... (嘗試 ${reconnectAttempts}/${maxReconnectAttempts})`);
+                                showNotification(`🔄 服務器連接失敗，正在重連... (${reconnectAttempts}/${maxReconnectAttempts})`);
+                                setTimeout(() => {
+                                    if (peer) peer.destroy();
+                                    initializePeer();
+                                }, delay);
+                                break;
+                            case 'unavailable-id':
+                                console.log('🔄 ID已被使用，立即重新生成...');
+                                showNotification('🔄 ID衝突，正在重新生成...');
+                                setTimeout(() => {
+                                    if (peer) peer.destroy();
+                                    initializePeer();
+                                }, 500);
+                                break;
+                            case 'peer-unavailable':
+                                console.log('⚠️ 對方不在線或ID不存在');
+                                showNotification('⚠️ 目標設備不在線或ID不存在');
+                                break;
+                            default:
+                                console.log('⚠️ 其他錯誤:', err.type);
+                                showNotification(`⚠️ 連接錯誤: ${err.type}`);
+                        }
+                    } else {
+                        console.error('❌ 重連次數已達上限，停止嘗試');
+                        showNotification('❌ 多次重連失敗，請重新整理頁面或檢查網路');
+                        reconnectAttempts = 0; // 重置計數器
                     }
                 });
 
