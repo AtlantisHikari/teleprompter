@@ -87,10 +87,10 @@
         .font-size-9 { font-size: 20vh; }
         .font-size-10 { font-size: 25vh; }
         
-        /* 鏡像效果 */
-        .mirror-horizontal { transform: scaleX(-1); }
-        .mirror-vertical { transform: scaleY(-1); }
-        .mirror-both { transform: scale(-1, -1); }
+        /* 鏡像效果 - 只通過JavaScript內聯樣式應用，避免CSS衝突 */
+        .mirror-horizontal { transform: scaleX(-1) !important; }
+        .mirror-vertical { transform: scaleY(-1) !important; }
+        .mirror-both { transform: scale(-1, -1) !important; }
         
         /* 狀態顯示 */
         .status-bar {
@@ -575,13 +575,27 @@
             // 初始化DOM元素
             content = document.getElementById('content');
             
+            // 確保 content 元素正確初始化
+            if (content) {
+                // 強制移除任何可能的鏡像類別和重置所有transform
+                content.classList.remove('mirror-horizontal', 'mirror-vertical', 'mirror-both');
+                content.style.transform = '';
+                // 確保預設位置：正常方向，從底部開始
+                content.style.transform = 'translateY(100vh) scaleX(1) scaleY(1)';
+                console.log('✅ Content 元素初始化完成，移除任何翻轉效果');
+            } else {
+                console.error('❌ 找不到 content 元素');
+            }
+            
             initializePeer();
             setupKeyboardShortcuts();
             loadSettings();
+            
             // 初始化文稿內容
             setTimeout(() => {
                 updateScriptLines();
                 updateLineNumbers();
+                initializeSettings();
             }, 100);
         });
         
@@ -804,6 +818,11 @@
         
         // 發送當前設定給連接的設備
         function sendCurrentSettings(conn) {
+            if (!conn || !conn.open) {
+                console.warn('連接不可用，無法發送設定');
+                return;
+            }
+            
             const currentSettings = {
                 fontSize: fontSize,
                 scrollSpeed: scrollSpeed,
@@ -812,14 +831,18 @@
                 mirrorMode: mirrorMode,
                 totalLines: scriptLines.length,
                 currentLine: currentLineIndex + 1,
-                isPlaying: isPlaying
+                isPlaying: isPlaying,
+                script: content ? content.textContent : ''
             };
             
-            if (conn && conn.open) {
+            try {
                 conn.send({
                     type: 'settings-sync',
                     data: currentSettings
                 });
+                console.log('設定已同步到設備:', conn.peer);
+            } catch (error) {
+                console.error('發送設定失敗:', error);
             }
         }
         
@@ -885,14 +908,7 @@
             }
         }
         
-        // 廣播訊息給所有連接
-        function broadcastMessage(type, data) {
-            connections.forEach(conn => {
-                if (conn.open) {
-                    sendToConnection(conn, type, data);
-                }
-            });
-        }
+        // 廣播訊息給所有連接的設備（移除重複定義）
         
         // 發送訊息給特定連接
         function sendToConnection(conn, type, data) {
@@ -903,38 +919,36 @@
             }
         }
         
-        // 發送當前設定
-        function sendCurrentSettings(conn) {
-            sendToConnection(conn, 'settings-response', {
-                textColor: textColor,
-                backgroundColor: backgroundColor,
-                fontSize: fontSize,
-                scrollSpeed: scrollSpeed,
-                mirrorMode: mirrorMode,
-                script: content.textContent,
-                totalLines: scriptLines.length,
-                currentLine: currentLineIndex + 1,
-                isPlaying: isPlaying
-            });
-        }
+        // 發送當前設定（移除重複定義，使用上面的版本）
         
         // 播放控制
         function playScript() {
-            if (isPlaying) return;
+            if (isPlaying || !content) {
+                console.log('播放已在進行中或content未初始化');
+                return;
+            }
             
             isPlaying = true;
             updateConnectionStatus();
+            console.log('開始播放，速度:', scrollSpeed);
             
             if (lineMode) {
                 // 行模式下不自動滾動
+                console.log('行模式下不自動滾動');
                 return;
             }
             
             // 連續滾動模式 - 修復版本
-            const scrollDistance = 1; // 每次移動的像素
-            const intervalTime = Math.max(10, 50 / scrollSpeed); // 根據速度調整間隔，最小10ms
+            const scrollDistance = scrollSpeed * 0.5; // 根據速度調整移動距離
+            const intervalTime = Math.max(16, 50 / scrollSpeed); // 60fps最大，根據速度調整間隔
             
             scrollAnimation = setInterval(() => {
+                if (!content) {
+                    console.error('滾動過程中content丟失');
+                    pauseScript();
+                    return;
+                }
+                
                 const currentTransform = content.style.transform || 'translateY(100vh)';
                 let currentY;
                 
@@ -946,7 +960,7 @@
                         if (value.includes('vh')) {
                             currentY = window.innerHeight; // 100vh = 視窗高度
                         } else {
-                            currentY = parseFloat(value) || 0;
+                            currentY = parseFloat(value) || window.innerHeight;
                         }
                     } else {
                         currentY = window.innerHeight;
@@ -963,15 +977,18 @@
                 if (mirrorMode && mirrorMode !== 'none') {
                     switch (mirrorMode) {
                         case 'horizontal':
-                            finalTransform += ' scaleX(-1)';
+                            finalTransform += ' scaleX(-1) scaleY(1)';
                             break;
                         case 'vertical':
-                            finalTransform += ' scaleY(-1)';
+                            finalTransform += ' scaleX(1) scaleY(-1)';
                             break;
                         case 'both':
                             finalTransform += ' scaleX(-1) scaleY(-1)';
                             break;
                     }
+                } else {
+                    // 正常模式：明確設置為不翻轉
+                    finalTransform += ' scaleX(1) scaleY(1)';
                 }
                 content.style.transform = finalTransform;
                 
@@ -981,35 +998,51 @@
                     showNotification('✅ 提詞完成');
                 }
             }, intervalTime);
+            
+            // 通知所有連接的設備
+            broadcastMessage('play-state', { isPlaying: true });
         }
         
         function pauseScript() {
             isPlaying = false;
             updateConnectionStatus();
+            console.log('暫停播放');
             
             if (scrollAnimation) {
                 clearInterval(scrollAnimation);
                 scrollAnimation = null;
             }
+            
+            // 通知所有連接的設備
+            broadcastMessage('play-state', { isPlaying: false });
         }
         
         function stopScript() {
+            console.log('停止播放並重置位置');
             pauseScript();
+            
+            if (!content) {
+                console.error('Content未初始化，無法停止');
+                return;
+            }
             
             // 重置到開始位置，但保持鏡像模式
             let finalTransform = 'translateY(100vh)';
             if (mirrorMode && mirrorMode !== 'none') {
                 switch (mirrorMode) {
                     case 'horizontal':
-                        finalTransform += ' scaleX(-1)';
+                        finalTransform += ' scaleX(-1) scaleY(1)';
                         break;
                     case 'vertical':
-                        finalTransform += ' scaleY(-1)';
+                        finalTransform += ' scaleX(1) scaleY(-1)';
                         break;
                     case 'both':
                         finalTransform += ' scaleX(-1) scaleY(-1)';
                         break;
                 }
+            } else {
+                // 正常模式：明確設置為不翻轉
+                finalTransform += ' scaleX(1) scaleY(1)';
             }
             content.style.transform = finalTransform;
             
@@ -1021,6 +1054,9 @@
             
             // 更新行號顯示
             updateLineNumbers();
+            
+            // 通知所有連接的設備
+            broadcastMessage('stop-state', { reset: true });
         }
         
         // 設定控制
@@ -1076,7 +1112,12 @@
         }
         
         function setMirror(mode) {
-            mirrorMode = mode;
+            if (!content) {
+                console.error('Content 元素未初始化，無法設置鏡像模式');
+                return;
+            }
+            
+            mirrorMode = mode || 'none';
             
             // 更新狀態顯示
             const mirrorNames = {
@@ -1085,7 +1126,10 @@
                 'vertical': '垂直鏡像',
                 'both': '雙向鏡像'
             };
-            document.getElementById('statusMirror').textContent = mirrorNames[mode];
+            const statusMirror = document.getElementById('statusMirror');
+            if (statusMirror) {
+                statusMirror.textContent = mirrorNames[mode] || '正常';
+            }
             
             // 重新應用transform（包含當前的滾動位置）
             const currentTransform = content.style.transform || 'translateY(100vh)';
@@ -1096,26 +1140,32 @@
                 const match = currentTransform.match(/translateY\\([^)]+\\)/);
                 if (match) {
                     translateY = match[0];
+                } else {
+                    translateY = 'translateY(100vh)';
                 }
             }
             
-            // 構建新的transform
+            // 構建新的transform - 確保正常模式下明確設置scale為1
             let finalTransform = translateY;
             if (mode && mode !== 'none') {
                 switch (mode) {
                     case 'horizontal':
-                        finalTransform += ' scaleX(-1)';
+                        finalTransform += ' scaleX(-1) scaleY(1)';
                         break;
                     case 'vertical':
-                        finalTransform += ' scaleY(-1)';
+                        finalTransform += ' scaleX(1) scaleY(-1)';
                         break;
                     case 'both':
                         finalTransform += ' scaleX(-1) scaleY(-1)';
                         break;
                 }
+            } else {
+                // 正常模式：明確設置為不翻轉
+                finalTransform += ' scaleX(1) scaleY(1)';
             }
             
             content.style.transform = finalTransform;
+            console.log(`鏡像模式已設置為: ${mode}, transform: ${finalTransform}`);
             
             // 通知連接的設備
             broadcastMessage('mirror-change', { mirrorMode: mode });
@@ -1463,8 +1513,17 @@
         function toggleSettings() {
             const panel = document.getElementById('settingsPanel');
             if (panel) {
-                const isVisible = panel.style.right === '0px';
-                panel.style.right = isVisible ? '-400px' : '0px';
+                // 使用CSS類別來控制面板顯示
+                const isOpen = panel.classList.contains('open');
+                if (isOpen) {
+                    panel.classList.remove('open');
+                    console.log('設定面板已關閉');
+                } else {
+                    panel.classList.add('open');
+                    console.log('設定面板已開啟');
+                }
+            } else {
+                console.error('找不到設定面板元素');
             }
         }
         
@@ -1551,15 +1610,33 @@
         }
         
         function loadSettings() {
-            // 從 localStorage 載入設定
-            const savedSettings = localStorage.getItem('teleprompter-settings');
-            if (savedSettings) {
-                const settings = JSON.parse(savedSettings);
-                if (settings.textColor) setTextColor(settings.textColor);
-                if (settings.backgroundColor) setBackgroundColor(settings.backgroundColor);
-                if (settings.fontSize) changeFontSize(settings.fontSize);
-                if (settings.scrollSpeed) changeSpeed(settings.scrollSpeed);
-                if (settings.mirrorMode) setMirror(settings.mirrorMode);
+            try {
+                // 從 localStorage 載入設定
+                const savedSettings = localStorage.getItem('teleprompter-settings');
+                if (savedSettings) {
+                    const settings = JSON.parse(savedSettings);
+                    console.log('載入已保存的設定:', settings);
+                    
+                    if (settings.textColor) setTextColor(settings.textColor);
+                    if (settings.backgroundColor) setBackgroundColor(settings.backgroundColor);
+                    if (settings.fontSize) changeFontSize(settings.fontSize);
+                    if (settings.scrollSpeed) changeSpeed(settings.scrollSpeed);
+                    
+                    // 鏡像模式特別處理，確保預設為 'none'
+                    if (settings.mirrorMode && settings.mirrorMode !== 'none') {
+                        setMirror(settings.mirrorMode);
+                    } else {
+                        setMirror('none');
+                    }
+                } else {
+                    console.log('沒有已保存的設定，使用預設值');
+                    // 確保使用預設值
+                    setMirror('none');
+                }
+            } catch (error) {
+                console.error('載入設定時發生錯誤:', error);
+                // 使用預設值
+                setMirror('none');
             }
         }
         
@@ -1690,8 +1767,20 @@
         
         // 初始化行數統計
         window.addEventListener('load', function() {
-            setTimeout(updateScriptLines, 500);
-            initializeSettings();
+            // 確保所有元素都已載入
+            setTimeout(() => {
+                console.log('頁面載入完成，初始化系統');
+                updateScriptLines();
+                initializeSettings();
+                
+                // 確保鏡像模式為預設值
+                if (mirrorMode !== 'none') {
+                    setMirror('none');
+                }
+                
+                // 顯示初始化完成通知
+                showNotification('✅ 智慧提詞機已初始化完成');
+            }, 500);
         });
         
         // 通知系統
