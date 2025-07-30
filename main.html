@@ -567,11 +567,14 @@
         let currentLineIndex = 0;
         let lineMode = false;
         
-        // DOM 元素
-        const content = document.getElementById('content');
+        // DOM 元素（將在DOM載入後初始化）
+        let content = null;
         
         // 初始化
         window.addEventListener('DOMContentLoaded', function() {
+            // 初始化DOM元素
+            content = document.getElementById('content');
+            
             initializePeer();
             setupKeyboardShortcuts();
             loadSettings();
