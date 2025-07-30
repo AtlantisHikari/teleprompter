@@ -519,16 +519,7 @@
         <!-- 行號顯示 -->
         <div class="line-numbers" id="lineNumbers"></div>
         
-        <div class="teleprompter-content font-size-5" id="content">
-            歡迎使用智慧提詞機<br>
-            請開啟控制面板設定文稿內容<br><br>
-            
-            快捷鍵：<br>
-            • 空白鍵：播放/暫停<br>
-            • ESC：顯示設定<br>
-            • ↑↓：調整速度<br>
-            • ←→：調整字體<br>
-        </div>
+        <div class="teleprompter-content font-size-5" id="content">歡迎使用智慧提詞機<br>請開啟控制面板設定文稿內容<br><br>快捷鍵：<br>• 空白鍵：播放/暫停<br>• ESC：顯示設定<br>• ↑↓：調整速度<br>• ←→：調整字體</div>
     </div>
     
     <!-- 快捷鍵說明 -->
@@ -574,18 +565,19 @@
         let currentLineIndex = 0;
         let lineMode = false;
         
-        // DOM 元素（在頁面載入後初始化）
-        let content = null;
+        // DOM 元素
+        const content = document.getElementById('content');
         
         // 初始化
-        window.addEventListener('load', function() {
-            // 初始化DOM元素
-            content = document.getElementById('content');
-            
+        window.addEventListener('DOMContentLoaded', function() {
             initializePeer();
             setupKeyboardShortcuts();
             loadSettings();
-            generateRoomId();
+            // 初始化文稿內容
+            setTimeout(() => {
+                updateScriptLines();
+                updateLineNumbers();
+            }, 100);
         });
         
         // 檢查瀏覽器兼容性
@@ -807,6 +799,12 @@
                         pauseScript();
                     }
                     break;
+                case 'play':
+                    playScript();
+                    break;
+                case 'pause':
+                    pauseScript();
+                    break;
                 case 'stop':
                     stopScript();
                     break;
@@ -1000,8 +998,28 @@
         
         // 手動行控制
         function updateScriptLines() {
-            const scriptText = content.textContent || '';
-            scriptLines = scriptText.split('\\n').filter(line => line.trim() !== '');
+            if (!content) {
+                console.log('content元素未初始化');
+                return;
+            }
+            
+            // 獲取文本內容（處理HTML和純文本）
+            let scriptText = '';
+            if (content.innerHTML.includes('<br>')) {
+                // 如果包含<br>標籤，將其轉換為換行符
+                scriptText = content.innerHTML.replace(/<br\s*\/?>/gi, '\n').replace(/<[^>]*>/g, '');
+            } else {
+                // 否則直接使用textContent
+                scriptText = content.textContent || content.innerText || '';
+            }
+            
+            console.log('原始文稿內容:', scriptText);
+            
+            // 按行分割，保留所有非空行
+            scriptLines = scriptText.split(/\r?\n/).filter(line => line.trim() !== '');
+            
+            console.log('分割後的行數:', scriptLines.length);
+            console.log('前5行內容:', scriptLines.slice(0, 5));
             
             // 更新行數顯示
             updateLineDisplays();
@@ -1018,19 +1036,28 @@
         // 更新行號顯示
         function updateLineNumbers() {
             const lineNumbersContainer = document.getElementById('lineNumbers');
-            if (!lineNumbersContainer) return;
+            if (!lineNumbersContainer) {
+                console.warn('找不到行號容器');
+                return;
+            }
+            
+            // 確保scriptLines已初始化
+            if (!scriptLines || scriptLines.length === 0) {
+                console.log('文稿內容為空，更新scriptLines');
+                updateScriptLines();
+                if (scriptLines.length === 0) {
+                    lineNumbersContainer.innerHTML = '';
+                    return;
+                }
+            }
             
             // 清空現有行號
             lineNumbersContainer.innerHTML = '';
             
-            // 如果沒有文稿內容，不顯示行號
-            if (scriptLines.length === 0) {
-                return;
-            }
-            
-            // 根據實際文稿行數和當前行顯示行號
             const totalLines = scriptLines.length;
             const currentLine = currentLineIndex + 1;
+            
+            console.log('更新行號顯示 - 總行數:', totalLines, '當前行:', currentLine);
             
             // 顯示當前行前後各5行，總共最多11行
             const displayRange = 5;
@@ -1052,11 +1079,9 @@
                 const lineNumberDiv = document.createElement('div');
                 lineNumberDiv.className = 'line-number';
                 lineNumberDiv.textContent = i;
-                
-                // 高亮當前行
-                if (i === currentLine) {
-                    lineNumberDiv.classList.add('current');
-                }
+                lineNumberDiv.style.opacity = (i === currentLine) ? '1' : '0.5';
+                lineNumberDiv.style.fontWeight = (i === currentLine) ? 'bold' : 'normal';
+                lineNumberDiv.style.color = (i === currentLine) ? '#fff' : 'rgba(255, 255, 255, 0.5)';
                 
                 lineNumbersContainer.appendChild(lineNumberDiv);
             }
@@ -1295,14 +1320,12 @@
             });
         }
         
-        // 工具函數
-        function generateRoomId() {
-            roomId = 'room-' + Math.random().toString(36).substr(2, 9);
-            document.getElementById('currentRoomId').textContent = roomId;
-            
-            if (peer && peer.open) {
-                isHost = true;
-                console.log('房間已創建:', roomId);
+        // 更新房間ID顯示（不重新生成roomId）
+        function updateRoomDisplay() {
+            const roomDisplay = document.getElementById('currentRoomId');
+            if (roomDisplay && roomId) {
+                roomDisplay.textContent = roomId;
+                console.log('房間ID已更新顯示:', roomId);
             }
         }
         

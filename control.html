@@ -906,6 +906,22 @@
             });
         }
         
+        // 啟用控制項
+        function enableControls() {
+            // 啟用所有控制按鈕和滑塊
+            document.querySelectorAll('button[disabled], input[disabled]').forEach(element => {
+                element.disabled = false;
+            });
+        }
+        
+        // 停用控制項
+        function disableControls() {
+            // 停用所有控制按鈕和滑塊（除了連接按鈕）
+            document.querySelectorAll('button:not(#connectBtn), input:not(#roomIdInput)').forEach(element => {
+                element.disabled = true;
+            });
+        }
+        
         // 處理來自主顯示器的訊息
         function handleMessage(message) {
             console.log('收到訊息:', message);
@@ -1058,9 +1074,21 @@
             }
         }
         
+        // 更新當前行顯示
         function updateCurrentLineDisplay() {
-            document.getElementById('currentLineDisplay').textContent = `行 ${currentLine}/${totalLines}`;
-            document.getElementById('lineJumpInput').value = currentLine;
+            const currentLineDisplay = document.getElementById('currentLineDisplay');
+            const lineJumpInput = document.getElementById('lineJumpInput');
+            
+            if (currentLineDisplay) {
+                currentLineDisplay.textContent = `行 ${currentLine}/${totalLines}`;
+            }
+            if (lineJumpInput) {
+                lineJumpInput.value = currentLine;
+                if (totalLines > 0) {
+                    lineJumpInput.max = totalLines;
+                    lineJumpInput.placeholder = `1-${totalLines}`;
+                }
+            }
         }
         
         function updateTotalLines(lines) {
@@ -1079,6 +1107,32 @@
             currentSettings.backgroundColor = color;
             updateColorSelection('bgColorPicker', color);
             sendMessage('color-change', { backgroundColor: color });
+        }
+        
+        // 更新顏色選擇指示器
+        function updateColorSelection(pickerId, selectedColor) {
+            const picker = document.getElementById(pickerId);
+            if (!picker) return;
+            
+            // 移除所有選中狀態
+            picker.querySelectorAll('.color-option').forEach(option => {
+                option.classList.remove('selected');
+            });
+            
+            // 添加選中狀態到當前顏色
+            picker.querySelectorAll('.color-option').forEach(option => {
+                const optionColor = option.style.backgroundColor;
+                const rgbToHex = (rgb) => {
+                    if (rgb.startsWith('#')) return rgb;
+                    const values = rgb.match(/\d+/g);
+                    if (!values) return rgb;
+                    return '#' + values.map(v => parseInt(v).toString(16).padStart(2, '0')).join('');
+                };
+                
+                if (rgbToHex(optionColor).toLowerCase() === selectedColor.toLowerCase()) {
+                    option.classList.add('selected');
+                }
+            });
         }
         
         // 鏡像控制
