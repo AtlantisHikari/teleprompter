@@ -381,6 +381,8 @@
             text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
         }
         
+        /* 鏡像模式現在使用內聯樣式處理，以兼容滾動動畫 */
+        
         /* 響應式設計 */
         @media (max-width: 768px) {
             .settings-panel {
@@ -787,6 +789,71 @@
             });
         }
         
+        // 處理新連線
+        function handleNewConnection(conn) {
+            // 將連線加入connections Map
+            connections.set(conn.peer, conn);
+            updateDeviceCount();
+            
+            conn.on('open', function() {
+                console.log('✅ 控制設備已連接:', conn.peer);
+                showNotification(`📱 控制設備已連接: ${conn.peer}`);
+                
+                // 發送當前設定給新連接的設備
+                sendCurrentSettings(conn);
+            });
+            
+            conn.on('data', function(message) {
+                handleMessage(message, conn);
+            });
+            
+            conn.on('close', function() {
+                connections.delete(conn.peer);
+                updateDeviceCount();
+                console.log('📱 控制設備已斷開:', conn.peer);
+                showNotification(`📱 控制設備已斷開: ${conn.peer}`);
+            });
+        }
+        
+        // 更新設備數量顯示
+        function updateDeviceCount() {
+            const deviceCountElement = document.getElementById('deviceCount');
+            if (deviceCountElement) {
+                deviceCountElement.textContent = connections.size;
+            }
+        }
+        
+        // 發送當前設定給連接的設備
+        function sendCurrentSettings(conn) {
+            const currentSettings = {
+                fontSize: fontSize,
+                scrollSpeed: scrollSpeed,
+                textColor: textColor,
+                backgroundColor: backgroundColor,
+                mirrorMode: mirrorMode,
+                totalLines: scriptLines.length,
+                currentLine: currentLineIndex + 1,
+                isPlaying: isPlaying
+            };
+            
+            if (conn && conn.open) {
+                conn.send({
+                    type: 'settings-sync',
+                    data: currentSettings
+                });
+            }
+        }
+        
+        // 廣播消息給所有連接的設備
+        function broadcastMessage(type, data) {
+            const message = { type: type, data: data };
+            connections.forEach((conn, peerId) => {
+                if (conn && conn.open) {
+                    conn.send(message);
+                }
+            });
+        }
+        
         // 處理訊息
         function handleMessage(message, conn) {
             console.log('收到訊息:', message);
@@ -884,20 +951,55 @@
                 return;
             }
             
-            // 連續滾動模式
+            // 連續滾動模式 - 修復版本
             const scrollDistance = 1; // 每次移動的像素
-            const intervalTime = 50 / scrollSpeed; // 根據速度調整間隔
+            const intervalTime = Math.max(10, 50 / scrollSpeed); // 根據速度調整間隔，最小10ms
             
             scrollAnimation = setInterval(() => {
                 const currentTransform = content.style.transform || 'translateY(100vh)';
-                const currentY = parseFloat(currentTransform.match(/translateY\\(([^)]+)\\)/)?.[1] || '100vh');
+                let currentY;
+                
+                // 正確解析當前Y位置
+                if (currentTransform.includes('translateY')) {
+                    const match = currentTransform.match(/translateY\\(([^)]+)\\)/);
+                    if (match) {
+                        const value = match[1];
+                        if (value.includes('vh')) {
+                            currentY = window.innerHeight; // 100vh = 視窗高度
+                        } else {
+                            currentY = parseFloat(value) || 0;
+                        }
+                    } else {
+                        currentY = window.innerHeight;
+                    }
+                } else {
+                    currentY = window.innerHeight;
+                }
+                
+                // 往上滾動（減少Y值讓內容往上移動）
                 const newY = currentY - scrollDistance;
                 
-                content.style.transform = `translateY(${newY}px)`;
+                // 合併滾動和鏡像transform
+                let finalTransform = `translateY(${newY}px)`;
+                if (mirrorMode && mirrorMode !== 'none') {
+                    switch (mirrorMode) {
+                        case 'horizontal':
+                            finalTransform += ' scaleX(-1)';
+                            break;
+                        case 'vertical':
+                            finalTransform += ' scaleY(-1)';
+                            break;
+                        case 'both':
+                            finalTransform += ' scaleX(-1) scaleY(-1)';
+                            break;
+                    }
+                }
+                content.style.transform = finalTransform;
                 
-                // 如果滾動完畢，停止
-                if (newY < -content.offsetHeight) {
+                // 如果內容完全滾動出視窗上方，停止滾動
+                if (newY < -content.offsetHeight - 100) {
                     stopScript();
+                    showNotification('✅ 提詞完成');
                 }
             }, intervalTime);
         }
@@ -914,12 +1016,32 @@
         
         function stopScript() {
             pauseScript();
-            content.style.transform = 'translateY(100vh)';
+            
+            // 重置到開始位置，但保持鏡像模式
+            let finalTransform = 'translateY(100vh)';
+            if (mirrorMode && mirrorMode !== 'none') {
+                switch (mirrorMode) {
+                    case 'horizontal':
+                        finalTransform += ' scaleX(-1)';
+                        break;
+                    case 'vertical':
+                        finalTransform += ' scaleY(-1)';
+                        break;
+                    case 'both':
+                        finalTransform += ' scaleX(-1) scaleY(-1)';
+                        break;
+                }
+            }
+            content.style.transform = finalTransform;
+            
             currentLineIndex = 0;
             
             if (lineMode) {
                 displayCurrentLine();
             }
+            
+            // 更新行號顯示
+            updateLineNumbers();
         }
         
         // 設定控制
@@ -976,12 +1098,8 @@
         
         function setMirror(mode) {
             mirrorMode = mode;
-            content.className = content.className.replace(/mirror-\\w+/g, '');
             
-            if (mode !== 'none') {
-                content.classList.add(`mirror-${mode}`);
-            }
-            
+            // 更新狀態顯示
             const mirrorNames = {
                 'none': '正常',
                 'horizontal': '水平鏡像',
@@ -989,6 +1107,39 @@
                 'both': '雙向鏡像'
             };
             document.getElementById('statusMirror').textContent = mirrorNames[mode];
+            
+            // 重新應用transform（包含當前的滾動位置）
+            const currentTransform = content.style.transform || 'translateY(100vh)';
+            let translateY = 'translateY(100vh)';
+            
+            // 提取當前的translateY值
+            if (currentTransform.includes('translateY')) {
+                const match = currentTransform.match(/translateY\\([^)]+\\)/);
+                if (match) {
+                    translateY = match[0];
+                }
+            }
+            
+            // 構建新的transform
+            let finalTransform = translateY;
+            if (mode && mode !== 'none') {
+                switch (mode) {
+                    case 'horizontal':
+                        finalTransform += ' scaleX(-1)';
+                        break;
+                    case 'vertical':
+                        finalTransform += ' scaleY(-1)';
+                        break;
+                    case 'both':
+                        finalTransform += ' scaleX(-1) scaleY(-1)';
+                        break;
+                }
+            }
+            
+            content.style.transform = finalTransform;
+            
+            // 通知連接的設備
+            broadcastMessage('mirror-change', { mirrorMode: mode });
         }
         
         function updateScript(scriptText) {
@@ -1327,6 +1478,66 @@
                 roomDisplay.textContent = roomId;
                 console.log('房間ID已更新顯示:', roomId);
             }
+        }
+        
+        // 設定面板控制
+        function toggleSettings() {
+            const panel = document.getElementById('settingsPanel');
+            if (panel) {
+                const isVisible = panel.style.right === '0px';
+                panel.style.right = isVisible ? '-400px' : '0px';
+            }
+        }
+        
+        // 應用文稿到主畫面
+        function applyScript() {
+            const scriptContent = document.getElementById('scriptEditor').value;
+            if (scriptContent.trim()) {
+                // 更新主顯示內容
+                content.innerHTML = scriptContent.replace(/\n/g, '<br>');
+                
+                // 重新初始化行數統計
+                updateScriptLines();
+                updateLineNumbers();
+                
+                // 重置到開始位置
+                content.style.transform = 'translateY(100vh)';
+                currentLineIndex = 0;
+                
+                showNotification('✅ 文稿已應用到主畫面');
+                
+                // 通知所有連接的設備
+                broadcastMessage('script-update', { script: scriptContent });
+            } else {
+                showNotification('❌ 請先輸入文稿內容');
+            }
+        }
+        
+        // 設定滾動速度
+        function setScrollSpeed(speed) {
+            scrollSpeed = parseFloat(speed);
+            document.getElementById('statusSpeed').textContent = scrollSpeed.toFixed(1);
+            
+            // 更新滑塊顯示
+            const speedSlider = document.getElementById('speedSlider');
+            const speedValueDisplay = document.getElementById('speedValue');
+            if (speedSlider) speedSlider.value = scrollSpeed;
+            if (speedValueDisplay) speedValueDisplay.textContent = scrollSpeed.toFixed(1);
+            
+            // 通知連接的設備
+            broadcastMessage('speed-change', { speed: scrollSpeed });
+        }
+        
+        // 設定字體大小
+        function setFontSize(size) {
+            fontSize = parseInt(size);
+            changeFontSize(fontSize);
+            
+            // 更新滑塊顯示
+            const fontSlider = document.getElementById('fontSlider');
+            const fontValueDisplay = document.getElementById('fontSizeValue');
+            if (fontSlider) fontSlider.value = fontSize;
+            if (fontValueDisplay) fontValueDisplay.textContent = fontSize;
         }
         
         function updateConnectionStatus() {
