@@ -510,7 +510,7 @@
         <div class="setting-group">
             <label class="setting-label">文稿內容</label>
             <textarea id="scriptEditor" rows="8" class="setting-input" 
-                      placeholder="在此輸入文稿內容..." maxlength="6000"></textarea>
+                      placeholder="在此輸入文稿內容..." maxlength="2000"></textarea>
             <div class="button-group">
                 <button class="btn btn-primary" onclick="applyScript()">投影到主畫面</button>
             </div>
@@ -1219,11 +1219,12 @@
             
             console.log('原始文稿內容:', scriptText);
             
-            // 按行分割，保留所有非空行
-            scriptLines = scriptText.split(/\r?\n/).filter(line => line.trim() !== '');
+            // 按行分割，保留所有行（包括空行以維持段落格式）
+            scriptLines = scriptText.split(/\r?\n/);
             
             console.log('分割後的行數:', scriptLines.length);
-            console.log('前5行內容:', scriptLines.slice(0, 5));
+            console.log('前10行內容:', scriptLines.slice(0, 10));
+            console.log('總字數:', scriptText.length);
             
             // 更新行數顯示
             updateLineDisplays();
@@ -1231,10 +1232,16 @@
             // 更新行號顯示
             updateLineNumbers();
             
-            // 通知所有連接的設備
+            // 通知所有連接的設備，發送前100行到控制面板
+            const first100Lines = scriptLines.slice(0, 100).join('\n');
+            broadcastMessage('script-content', { 
+                script: first100Lines,
+                totalLines: scriptLines.length,
+                fullContent: scriptText // 發送完整內容用於備份
+            });
             broadcastMessage('total-lines', { totalLines: scriptLines.length });
             
-            console.log('文稿更新，總共', scriptLines.length, '行');
+            console.log('文稿更新，總共', scriptLines.length, '行，同步前100行到控制面板');
         }
         
         // 更新行號顯示

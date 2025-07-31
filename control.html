@@ -626,7 +626,7 @@
                 <div class="card-title">
                     📝 文稿編輯
                 </div>
-                <textarea id="scriptEditor" class="script-editor" placeholder="在此輸入文稿內容..." maxlength="6000" disabled></textarea>
+                <textarea id="scriptEditor" class="script-editor" placeholder="在此輸入文稿內容..." maxlength="2000" disabled></textarea>
                 <div style="margin-top: 10px; display: flex; gap: 10px;">
                     <button class="control-btn" onclick="updateScript()" disabled style="background: #2196F3; flex: 1;">
                         📤 更新到主顯示器
@@ -932,6 +932,12 @@
             document.querySelectorAll('button[disabled], input[disabled]').forEach(element => {
                 element.disabled = false;
             });
+            
+            // 更新顏色選擇狀態
+            setTimeout(() => {
+                updateColorSelection('textColorPicker', currentSettings.textColor);
+                updateColorSelection('bgColorPicker', currentSettings.backgroundColor);
+            }, 100);
         }
         
         // 停用控制項
@@ -953,6 +959,16 @@
                     break;
                 case 'total-lines':
                     updateTotalLines(message.data.totalLines);
+                    break;
+                case 'script-content':
+                    // 同步文稿內容到控制面板（前100行）
+                    if (message.data.script) {
+                        document.getElementById('scriptEditor').value = message.data.script;
+                        console.log('已同步前100行文稿到控制面板');
+                    }
+                    if (message.data.totalLines) {
+                        updateTotalLines(message.data.totalLines);
+                    }
                     break;
                 case 'current-line-update':
                     currentLine = message.data.currentLine;
@@ -1118,6 +1134,28 @@
         function updateTotalLines(lines) {
             totalLines = lines;
             updateCurrentLineDisplay();
+        }
+        
+        // 手動播放控制函數
+        function continueFromCurrentLine() {
+            if (!isConnected) return;
+            
+            sendMessage('manual-continue', { line: currentLine });
+            showFeedback('▶️ 從第 ' + currentLine + ' 行繼續播放');
+        }
+        
+        function pauseManualMode() {
+            if (!isConnected) return;
+            
+            sendMessage('manual-pause', {});
+            showFeedback('⏸️ 手動模式暫停');
+        }
+        
+        function returnToAutoMode() {
+            if (!isConnected) return;
+            
+            sendMessage('return-to-auto', {});
+            showFeedback('🔄 返回自動播放模式');
         }
         
         // 顏色控制
@@ -1428,18 +1466,12 @@
         
         function rgbToHex(rgb) {
             if (rgb.startsWith('#')) return rgb;
-            const result = rgb.match(/\\d+/g);
+            const result = rgb.match(/\d+/g);
             if (!result) return rgb;
             return "#" + ((1 << 24) + (parseInt(result[0]) << 16) + (parseInt(result[1]) << 8) + parseInt(result[2])).toString(16).slice(1);
         }
         
-        // 控制項狀態管理
-        function enableControls() {
-            const controls = document.querySelectorAll('.control-btn, .slider, .mirror-btn, .script-editor, .line-input');
-            controls.forEach(control => {
-                control.disabled = false;
-            });
-        }
+        // 控制項狀態管理 (duplicate removed)
         
         function disableControls() {
             const controls = document.querySelectorAll('.control-btn, .slider, .mirror-btn, .script-editor, .line-input');
