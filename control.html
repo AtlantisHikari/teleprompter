@@ -546,30 +546,49 @@
                            class="slider" id="fontSlider" oninput="changeFontSize(this.value)" disabled>
                 </div>
                 
-                <!-- 手動行控制 -->
-                <div class="manual-control-section">
-                    <div class="slider-label">
-                        <span>📍 手動行控制</span>
-                        <span class="slider-value" id="currentLineDisplay">行 1</span>
+            </div>
+            
+            <!-- 手動播放 -->
+            <div class="control-card">
+                <div class="card-title">
+                    🎯 手動播放
+                </div>
+                <div style="margin-bottom: 10px; font-size: 12px; color: rgba(255,255,255,0.8);">
+                    模式: <span id="playbackModeDisplay">自動模式</span> | 
+                    目前第 <span id="currentLineDisplay">0</span> 行，共 <span id="totalLinesDisplayText">0</span> 行
+                </div>
+                
+                <!-- 行控制 -->
+                <div class="manual-control-group" style="margin-bottom: 10px;">
+                    <div class="line-navigation-controls" style="display: flex; gap: 10px; margin-bottom: 8px;">
+                        <button class="control-btn btn-prev-line" onclick="previousLine()" disabled>
+                            ⬆️ 上一行
+                        </button>
+                        <button class="control-btn btn-next-line" onclick="nextLine()" disabled>
+                            ⬇️ 下一行
+                        </button>
                     </div>
-                    <div class="manual-control-group">
-                        <div class="line-jump-controls">
-                            <input type="number" min="1" value="1" 
-                                   class="line-input" id="lineJumpInput" 
-                                   placeholder="行號" disabled>
-                            <button class="control-btn btn-jump" onclick="jumpToLine()" disabled>
-                                🎯 跳轉
-                            </button>
-                        </div>
-                        <div class="line-navigation-controls">
-                            <button class="control-btn btn-prev-line" onclick="previousLine()" disabled>
-                                ⬆️ 上一行
-                            </button>
-                            <button class="control-btn btn-next-line" onclick="nextLine()" disabled>
-                                ⬇️ 下一行
-                            </button>
-                        </div>
+                    <div class="line-jump-controls" style="display: flex; gap: 10px; align-items: center;">
+                        <input type="number" min="1" value="1" 
+                               class="line-input" id="lineJumpInput" 
+                               placeholder="行號" disabled style="width: 80px;">
+                        <button class="control-btn btn-jump" onclick="jumpToLine()" disabled>
+                            🎯 跳轉到行
+                        </button>
                     </div>
+                </div>
+                
+                <!-- 手動播放控制 -->
+                <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                    <button class="control-btn btn-continue" onclick="continueFromCurrentLine()" disabled>
+                        ▶ 繼續提詞
+                    </button>
+                    <button class="control-btn btn-pause-manual" onclick="pauseManualMode()" disabled>
+                        ⏸ 暫停
+                    </button>
+                    <button class="control-btn btn-auto-mode" onclick="returnToAutoMode()" disabled>
+                        🔄 回自動模式
+                    </button>
                 </div>
             </div>
             
@@ -1114,10 +1133,15 @@
             sendMessage('color-change', { backgroundColor: color });
         }
         
-        // 更新顏色選擇指示器
+        // 更新顏色選擇指示器（改進版本）
         function updateColorSelection(pickerId, selectedColor) {
             const picker = document.getElementById(pickerId);
-            if (!picker) return;
+            if (!picker) {
+                console.warn('找不到顏色選擇器:', pickerId);
+                return;
+            }
+            
+            console.log('更新顏色選擇:', pickerId, selectedColor);
             
             // 移除所有選中狀態
             picker.querySelectorAll('.color-option').forEach(option => {
@@ -1128,14 +1152,20 @@
             picker.querySelectorAll('.color-option').forEach(option => {
                 const optionColor = option.style.backgroundColor;
                 const rgbToHex = (rgb) => {
-                    if (rgb.startsWith('#')) return rgb;
+                    if (rgb.startsWith('#')) return rgb.toLowerCase();
                     const values = rgb.match(/\d+/g);
-                    if (!values) return rgb;
-                    return '#' + values.map(v => parseInt(v).toString(16).padStart(2, '0')).join('');
+                    if (!values || values.length < 3) return rgb;
+                    return '#' + values.slice(0, 3).map(v => parseInt(v).toString(16).padStart(2, '0')).join('');
                 };
                 
-                if (rgbToHex(optionColor).toLowerCase() === selectedColor.toLowerCase()) {
+                const optionHex = rgbToHex(optionColor);
+                const selectedHex = selectedColor.startsWith('#') ? selectedColor.toLowerCase() : selectedColor;
+                
+                if (optionColor === selectedColor || 
+                    optionHex === selectedHex ||
+                    option.title === selectedColor) {
                     option.classList.add('selected');
+                    console.log('顏色匹配成功:', pickerId, selectedColor, '→', optionHex);
                 }
             });
         }

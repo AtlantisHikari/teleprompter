@@ -276,6 +276,12 @@
             transform: translateY(-1px);
         }
         
+        /* 鏡像按鈕活動狀態 */
+        .btn.active {
+            background: #28a745 !important;
+            color: white !important;
+        }
+        
         /* 文稿歷史樣式 */
         .script-history {
             max-height: 200px;
@@ -464,12 +470,12 @@
         <div class="setting-group">
             <label class="setting-label">鏡像模式</label>
             <div class="button-group">
-                <button class="btn btn-primary" onclick="setMirror('none')">正常</button>
-                <button class="btn btn-primary" onclick="setMirror('horizontal')">水平</button>
+                <button class="btn btn-primary" id="mirrorBtn-none" onclick="setMirror('none')">正常</button>
+                <button class="btn btn-primary" id="mirrorBtn-horizontal" onclick="setMirror('horizontal')">水平</button>
             </div>
             <div class="button-group" style="margin-top: 5px;">
-                <button class="btn btn-primary" onclick="setMirror('vertical')">垂直</button>
-                <button class="btn btn-primary" onclick="setMirror('both')">雙向</button>
+                <button class="btn btn-primary" id="mirrorBtn-vertical" onclick="setMirror('vertical')">垂直</button>
+                <button class="btn btn-primary" id="mirrorBtn-both" onclick="setMirror('both')">雙向</button>
             </div>
         </div>
         
@@ -1115,11 +1121,15 @@
         function setTextColor(color) {
             textColor = color;
             content.style.color = color;
+            updateColorSelection('textColorPicker', color);
+            broadcastMessage('color-change', { textColor: color });
         }
         
         function setBackgroundColor(color) {
             backgroundColor = color;
             document.body.style.backgroundColor = color;
+            updateColorSelection('bgColorPicker', color);
+            broadcastMessage('color-change', { backgroundColor: color });
         }
         
         function setMirror(mode) {
@@ -1141,6 +1151,9 @@
             if (statusMirror) {
                 statusMirror.textContent = mirrorNames[mode] || '正常';
             }
+            
+            // 更新鏡像按鈕狀態
+            updateMirrorButtons(mode);
             
             // 重新應用transform（包含當前的滾動位置）
             const currentTransform = content.style.transform || 'translateY(100vh)';
@@ -1535,6 +1548,25 @@
             if (continueBtn) continueBtn.disabled = true;
             if (pauseManualBtn) pauseManualBtn.disabled = true;
             if (returnAutoBtn) returnAutoBtn.disabled = true;
+        }
+        
+        // 更新鏡像按鈕狀態
+        function updateMirrorButtons(mode) {
+            // 移除所有按鈕的active狀態
+            ['none', 'horizontal', 'vertical', 'both'].forEach(m => {
+                const btn = document.getElementById(`mirrorBtn-${m}`);
+                if (btn) {
+                    btn.classList.remove('active');
+                }
+            });
+            
+            // 添加當前模式按鈕的active狀態
+            const activeBtn = document.getElementById(`mirrorBtn-${mode}`);
+            if (activeBtn) {
+                activeBtn.classList.add('active');
+            }
+            
+            console.log('鏡像按鈕狀態已更新:', mode);
         }
         
         // 文稿歷史功能
@@ -1967,6 +1999,9 @@
             // 初始化播放模式顯示
             updatePlaybackModeDisplay();
             disableManualControls();
+            
+            // 初始化鏡像按鈕狀態
+            updateMirrorButtons(mirrorMode);
             
             // 同步滑動條位置
             const speedSlider = document.getElementById('speedSlider');
