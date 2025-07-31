@@ -939,9 +939,9 @@
             updateConnectionStatus();
             console.log('開始播放，速度:', scrollSpeed);
             
-            if (lineMode) {
-                // 行模式下不自動滾動
-                console.log('行模式下不自動滾動');
+            if (lineMode && manualMode) {
+                // 手動模式下不自動滾動（但自動模式下可以滾動）
+                console.log('手動模式下不自動滾動');
                 return;
             }
             
@@ -1211,7 +1211,7 @@
             scriptLines = scriptText.split(/\r?\n/);
             
             console.log('分割後的行數:', scriptLines.length);
-            console.log('前10行內容:', scriptLines.slice(0, 10));
+            console.log('前100行內容:', scriptLines.slice(0, 100));
             console.log('總字數:', scriptText.length);
             
             // 更新行數顯示
