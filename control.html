@@ -945,15 +945,19 @@
         
         // 同步設定
         function syncSettings(settings) {
+            console.log('收到主顯示器設定同步:', settings);
+            
             if (settings.textColor) {
                 currentSettings.textColor = settings.textColor;
+                console.log('同步文字顏色:', settings.textColor);
                 // 確保顏色選擇器已經創建後再更新選中狀態
-                setTimeout(() => updateColorSelection('textColorPicker', settings.textColor), 100);
+                setTimeout(() => updateColorSelection('textColorPicker', settings.textColor), 200);
             }
             if (settings.backgroundColor) {
                 currentSettings.backgroundColor = settings.backgroundColor;
+                console.log('同步背景顏色:', settings.backgroundColor);
                 // 確保顏色選擇器已經創建後再更新選中狀態
-                setTimeout(() => updateColorSelection('bgColorPicker', settings.backgroundColor), 100);
+                setTimeout(() => updateColorSelection('bgColorPicker', settings.backgroundColor), 200);
             }
             if (settings.fontSize) {
                 currentSettings.fontSize = settings.fontSize;

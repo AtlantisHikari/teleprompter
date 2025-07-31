@@ -473,20 +473,30 @@
             </div>
         </div>
         
-        <!-- 手動行控制 -->
+        <!-- 手動播放 -->
         <div class="setting-group">
-            <label class="setting-label">🎯 手動行控制</label>
+            <label class="setting-label">🎯 手動播放</label>
+            <div style="margin-bottom: 10px; font-size: 12px; color: #ccc;">
+                模式: <span id="playbackModeDisplay">自動模式</span> | 
+                目前第 <span id="currentLineDisplay">0</span> 行，共 <span id="totalLinesDisplay">0</span> 行
+            </div>
+            
+            <!-- 行控制 -->
             <div style="display: flex; gap: 10px; align-items: center; margin-bottom: 10px;">
                 <button class="btn btn-primary" onclick="previousLine()">⬆ 上一行</button>
                 <button class="btn btn-primary" onclick="nextLine()">⬇ 下一行</button>
             </div>
-            <div style="display: flex; gap: 10px; align-items: center;">
+            <div style="display: flex; gap: 10px; align-items: center; margin-bottom: 10px;">
                 <input type="number" id="jumpToLineInput" min="1" value="1" class="setting-input" 
                        style="width: 80px;" placeholder="行號">
                 <button class="btn btn-warning" onclick="jumpToLineFromInput()">跳轉到行</button>
             </div>
-            <div style="margin-top: 8px; font-size: 12px; color: #ccc;">
-                目前第 <span id="currentLineDisplay">0</span> 行，共 <span id="totalLinesDisplay">0</span> 行
+            
+            <!-- 手動播放控制 -->
+            <div class="button-group" style="margin-top: 10px;">
+                <button class="btn btn-success" onclick="continueFromCurrentLine()" id="continueBtn" disabled>▶ 繼續提詞</button>
+                <button class="btn btn-warning" onclick="pauseManualMode()" id="pauseManualBtn" disabled>⏸ 暫停</button>
+                <button class="btn btn-danger" onclick="returnToAutoMode()" id="returnAutoBtn" disabled>🔄 回自動模式</button>
             </div>
         </div>
         
@@ -566,6 +576,7 @@
         let scriptLines = [];
         let currentLineIndex = 0;
         let lineMode = false;
+        let manualMode = false; // 手動播放模式開關
         
         // DOM 元素（將在DOM載入後初始化）
         let content = null;
@@ -992,8 +1003,8 @@
                 }
                 content.style.transform = finalTransform;
                 
-                // 如果內容完全滾動出視窗上方，停止滾動
-                if (newY < -content.offsetHeight - 100) {
+                // 如果內容完全滾動出視窗上方，停止滾動（增加更多緩衝空間確保內容完全顯示）
+                if (newY < -content.offsetHeight - 500) {
                     stopScript();
                     showNotification('✅ 提詞完成');
                 }
@@ -1275,7 +1286,7 @@
             }
             
             currentLineIndex = lineNumber - 1;
-            lineMode = true;
+            enterManualMode();
             displayCurrentLine();
             
             // 更新顯示
@@ -1316,7 +1327,7 @@
         function previousLine() {
             if (currentLineIndex > 0) {
                 currentLineIndex--;
-                lineMode = true;
+                enterManualMode();
                 displayCurrentLine();
                 updateLineDisplays();
                 
@@ -1330,7 +1341,7 @@
         function nextLine() {
             if (currentLineIndex < scriptLines.length - 1) {
                 currentLineIndex++;
-                lineMode = true;
+                enterManualMode();
                 displayCurrentLine();
                 updateLineDisplays();
                 
@@ -1339,6 +1350,191 @@
                     totalLines: scriptLines.length 
                 });
             }
+        }
+        
+        // 進入手動模式
+        function enterManualMode() {
+            if (!manualMode) {
+                manualMode = true;
+                lineMode = true;
+                
+                // 停止自動播放
+                if (isPlaying) {
+                    pauseScript();
+                }
+                
+                // 更新UI狀態
+                updatePlaybackModeDisplay();
+                enableManualControls();
+                
+                console.log('進入手動播放模式');
+                broadcastMessage('manual-mode', { enabled: true });
+            }
+        }
+        
+        // 從當前行繼續提詞
+        function continueFromCurrentLine() {
+            if (!manualMode || scriptLines.length === 0) return;
+            
+            console.log('從第', currentLineIndex + 1, '行繼續提詞');
+            
+            // 設置內容到當前行位置並開始滾動提詞
+            displayCurrentLine();
+            
+            // 開始自動滾動（但保持在手動模式）
+            isPlaying = true;
+            updateConnectionStatus();
+            
+            const scrollDistance = scrollSpeed * 0.5;
+            const intervalTime = Math.max(16, 50 / scrollSpeed);
+            
+            scrollAnimation = setInterval(() => {
+                if (!content) {
+                    console.error('滾動過程中content丟失');
+                    pauseManualMode();
+                    return;
+                }
+                
+                const currentTransform = content.style.transform || 'translateY(20vh)';
+                let currentY = 20 * window.innerHeight / 100; // 20vh轉換為px
+                
+                if (currentTransform.includes('translateY')) {
+                    const match = currentTransform.match(/translateY\(([^)]+)\)/);
+                    if (match) {
+                        const value = match[1];
+                        if (value.includes('vh')) {
+                            currentY = parseFloat(value) * window.innerHeight / 100;
+                        } else {
+                            currentY = parseFloat(value) || 20 * window.innerHeight / 100;
+                        }
+                    }
+                }
+                
+                const newY = currentY - scrollDistance;
+                
+                let finalTransform = `translateY(${newY}px)`;
+                if (mirrorMode && mirrorMode !== 'none') {
+                    switch (mirrorMode) {
+                        case 'horizontal':
+                            finalTransform += ' scaleX(-1) scaleY(1)';
+                            break;
+                        case 'vertical':
+                            finalTransform += ' scaleX(1) scaleY(-1)';
+                            break;
+                        case 'both':
+                            finalTransform += ' scaleX(-1) scaleY(-1)';
+                            break;
+                    }
+                } else {
+                    finalTransform += ' scaleX(1) scaleY(1)';
+                }
+                content.style.transform = finalTransform;
+                
+                // 檢查是否滾動完畢
+                if (newY < -content.offsetHeight - 500) {
+                    pauseManualMode();
+                    showNotification('✅ 手動提詞完成');
+                }
+            }, intervalTime);
+            
+            broadcastMessage('manual-continue', { fromLine: currentLineIndex + 1 });
+        }
+        
+        // 暫停手動模式
+        function pauseManualMode() {
+            isPlaying = false;
+            updateConnectionStatus();
+            
+            if (scrollAnimation) {
+                clearInterval(scrollAnimation);
+                scrollAnimation = null;
+            }
+            
+            console.log('手動模式暫停');
+            broadcastMessage('manual-pause', {});
+        }
+        
+        // 回到自動模式
+        function returnToAutoMode() {
+            console.log('回到自動模式');
+            
+            // 停止手動播放
+            pauseManualMode();
+            
+            // 重置狀態
+            manualMode = false;
+            lineMode = false;
+            currentLineIndex = 0;
+            
+            // 重置內容顯示
+            if (content) {
+                const scriptContent = document.getElementById('scriptEditor').value;
+                if (scriptContent.trim()) {
+                    content.innerHTML = scriptContent.replace(/\n/g, '<br>');
+                } else {
+                    content.innerHTML = '歡迎使用智慧提詞機<br>請開啟控制面板設定文稿內容<br><br>快捷鍵：<br>• 空白鍵：播放/暫停<br>• ESC：顯示設定<br>• ↑↓：調整速度<br>• ←→：調整字體';
+                }
+                
+                // 重置到開始位置
+                let finalTransform = 'translateY(100vh)';
+                if (mirrorMode && mirrorMode !== 'none') {
+                    switch (mirrorMode) {
+                        case 'horizontal':
+                            finalTransform += ' scaleX(-1) scaleY(1)';
+                            break;
+                        case 'vertical':
+                            finalTransform += ' scaleX(1) scaleY(-1)';
+                            break;
+                        case 'both':
+                            finalTransform += ' scaleX(-1) scaleY(-1)';
+                            break;
+                    }
+                } else {
+                    finalTransform += ' scaleX(1) scaleY(1)';
+                }
+                content.style.transform = finalTransform;
+            }
+            
+            // 更新UI狀態
+            updatePlaybackModeDisplay();
+            disableManualControls();
+            updateScriptLines();
+            updateLineNumbers();
+            updateLineDisplays();
+            
+            showNotification('🔄 已回到自動模式');
+            broadcastMessage('auto-mode', { enabled: true });
+        }
+        
+        // 更新播放模式顯示
+        function updatePlaybackModeDisplay() {
+            const modeDisplay = document.getElementById('playbackModeDisplay');
+            if (modeDisplay) {
+                modeDisplay.textContent = manualMode ? '手動模式' : '自動模式';
+                modeDisplay.style.color = manualMode ? '#ff9800' : '#4CAF50';
+            }
+        }
+        
+        // 啟用手動控制按鈕
+        function enableManualControls() {
+            const continueBtn = document.getElementById('continueBtn');
+            const pauseManualBtn = document.getElementById('pauseManualBtn');
+            const returnAutoBtn = document.getElementById('returnAutoBtn');
+            
+            if (continueBtn) continueBtn.disabled = false;
+            if (pauseManualBtn) pauseManualBtn.disabled = false;
+            if (returnAutoBtn) returnAutoBtn.disabled = false;
+        }
+        
+        // 停用手動控制按鈕
+        function disableManualControls() {
+            const continueBtn = document.getElementById('continueBtn');
+            const pauseManualBtn = document.getElementById('pauseManualBtn');
+            const returnAutoBtn = document.getElementById('returnAutoBtn');
+            
+            if (continueBtn) continueBtn.disabled = true;
+            if (pauseManualBtn) pauseManualBtn.disabled = true;
+            if (returnAutoBtn) returnAutoBtn.disabled = true;
         }
         
         // 文稿歷史功能
@@ -1767,6 +1963,10 @@
             updateFontSizeDisplay();
             updateColorSelection('textColorPicker', textColor);
             updateColorSelection('bgColorPicker', backgroundColor);
+            
+            // 初始化播放模式顯示
+            updatePlaybackModeDisplay();
+            disableManualControls();
             
             // 同步滑動條位置
             const speedSlider = document.getElementById('speedSlider');
