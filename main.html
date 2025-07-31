@@ -954,7 +954,7 @@
                 
                 // 正確解析當前Y位置
                 if (currentTransform.includes('translateY')) {
-                    const match = currentTransform.match(/translateY\\(([^)]+)\\)/);
+                    const match = currentTransform.match(/translateY\(([^)]+)\)/);
                     if (match) {
                         const value = match[1];
                         if (value.includes('vh')) {
@@ -1082,7 +1082,7 @@
         
         function changeFontSize(value) {
             fontSize = parseInt(value);
-            content.className = content.className.replace(/font-size-\\d+/, `font-size-${fontSize}`);
+            content.className = content.className.replace(/font-size-\d+/, `font-size-${fontSize}`);
             document.getElementById('statusFont').textContent = fontSize;
             
             // 更新設定面板中的顯示
@@ -1137,7 +1137,7 @@
             
             // 提取當前的translateY值
             if (currentTransform.includes('translateY')) {
-                const match = currentTransform.match(/translateY\\([^)]+\\)/);
+                const match = currentTransform.match(/translateY\([^)]+\)/);
                 if (match) {
                     translateY = match[0];
                 } else {
@@ -1442,10 +1442,10 @@
             for (let i = startIndex; i < endIndex; i++) {
                 const line = scriptLines[i];
                 if (i === currentLineIndex) {
-                    displayText += `<span class="current-line-highlight">${line}</span>\\n`;
+                    displayText += `<span class="current-line-highlight">${line}</span>\n`;
                 } else {
                     const opacity = Math.abs(i - currentLineIndex) <= 1 ? 1 : 0.6;
-                    displayText += `<span style="opacity: ${opacity};">${line}</span>\\n`;
+                    displayText += `<span style="opacity: ${opacity};">${line}</span>\n`;
                 }
             }
             
