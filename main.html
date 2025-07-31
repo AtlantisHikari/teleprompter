@@ -1221,52 +1221,51 @@
                 return;
             }
             
-            // 確保scriptLines已初始化
-            if (!scriptLines || scriptLines.length === 0) {
-                console.log('文稿內容為空，更新scriptLines');
-                updateScriptLines();
-                if (scriptLines.length === 0) {
-                    lineNumbersContainer.innerHTML = '';
-                    return;
-                }
-            }
-            
             // 清空現有行號
             lineNumbersContainer.innerHTML = '';
+            
+            // 如果沒有文稿內容，不顯示行號
+            if (!scriptLines || scriptLines.length === 0) {
+                console.log('無文稿內容，隱藏行號');
+                return;
+            }
             
             const totalLines = scriptLines.length;
             const currentLine = currentLineIndex + 1;
             
             console.log('更新行號顯示 - 總行數:', totalLines, '當前行:', currentLine);
             
-            // 顯示當前行前後各5行，總共最多11行
-            const displayRange = 5;
-            let startLine = Math.max(1, currentLine - displayRange);
-            let endLine = Math.min(totalLines, currentLine + displayRange);
-            
-            // 確保至少顯示11行（如果總行數足夠）
-            const minDisplayLines = Math.min(11, totalLines);
-            if (endLine - startLine + 1 < minDisplayLines) {
-                if (startLine === 1) {
-                    endLine = Math.min(totalLines, startLine + minDisplayLines - 1);
-                } else if (endLine === totalLines) {
-                    startLine = Math.max(1, endLine - minDisplayLines + 1);
-                }
-            }
-            
-            // 生成行號
-            for (let i = startLine; i <= endLine; i++) {
-                const lineNumberDiv = document.createElement('div');
-                lineNumberDiv.className = 'line-number';
-                lineNumberDiv.textContent = i;
-                lineNumberDiv.style.opacity = (i === currentLine) ? '1' : '0.5';
-                lineNumberDiv.style.fontWeight = (i === currentLine) ? 'bold' : 'normal';
-                lineNumberDiv.style.color = (i === currentLine) ? '#fff' : 'rgba(255, 255, 255, 0.5)';
+            // 只有在有實際內容時才顯示行號
+            if (totalLines > 0) {
+                // 顯示當前行前後各5行，總共最多11行
+                const displayRange = 5;
+                let startLine = Math.max(1, currentLine - displayRange);
+                let endLine = Math.min(totalLines, currentLine + displayRange);
                 
-                lineNumbersContainer.appendChild(lineNumberDiv);
+                // 確保至少顯示11行（如果總行數足夠）
+                const minDisplayLines = Math.min(11, totalLines);
+                if (endLine - startLine + 1 < minDisplayLines) {
+                    if (startLine === 1) {
+                        endLine = Math.min(totalLines, startLine + minDisplayLines - 1);
+                    } else if (endLine === totalLines) {
+                        startLine = Math.max(1, endLine - minDisplayLines + 1);
+                    }
+                }
+                
+                // 生成行號
+                for (let i = startLine; i <= endLine; i++) {
+                    const lineNumberDiv = document.createElement('div');
+                    lineNumberDiv.className = 'line-number';
+                    lineNumberDiv.textContent = i;
+                    lineNumberDiv.style.opacity = (i === currentLine) ? '1' : '0.5';
+                    lineNumberDiv.style.fontWeight = (i === currentLine) ? 'bold' : 'normal';
+                    lineNumberDiv.style.color = (i === currentLine) ? '#fff' : 'rgba(255, 255, 255, 0.5)';
+                    
+                    lineNumbersContainer.appendChild(lineNumberDiv);
+                }
+                
+                console.log(`行號更新: 顯示 ${startLine}-${endLine}，當前行 ${currentLine}，總行數 ${totalLines}`);
             }
-            
-            console.log(`行號更新: 顯示 ${startLine}-${endLine}，當前行 ${currentLine}，總行數 ${totalLines}`);
         }
         
         function jumpToLine(lineNumber) {
@@ -1531,6 +1530,8 @@
         function applyScript() {
             const scriptContent = document.getElementById('scriptEditor').value;
             if (scriptContent.trim()) {
+                console.log('應用文稿:', scriptContent.substring(0, 100) + '...');
+                
                 // 更新主顯示內容
                 content.innerHTML = scriptContent.replace(/\n/g, '<br>');
                 
@@ -1538,8 +1539,24 @@
                 updateScriptLines();
                 updateLineNumbers();
                 
-                // 重置到開始位置
-                content.style.transform = 'translateY(100vh)';
+                // 重置到開始位置，保持當前鏡像模式
+                let finalTransform = 'translateY(100vh)';
+                if (mirrorMode && mirrorMode !== 'none') {
+                    switch (mirrorMode) {
+                        case 'horizontal':
+                            finalTransform += ' scaleX(-1) scaleY(1)';
+                            break;
+                        case 'vertical':
+                            finalTransform += ' scaleX(1) scaleY(-1)';
+                            break;
+                        case 'both':
+                            finalTransform += ' scaleX(-1) scaleY(-1)';
+                            break;
+                    }
+                } else {
+                    finalTransform += ' scaleX(1) scaleY(1)';
+                }
+                content.style.transform = finalTransform;
                 currentLineIndex = 0;
                 
                 showNotification('✅ 文稿已應用到主畫面');
@@ -1663,12 +1680,16 @@
             '#F0E6FF', '#DDA0DD', '#BA55D3', '#9932CC', '#8A2BE2', '#663399', '#4B0082', '#2E004B'
         ];
         
-        // 建立顏色選擇器
+        // 建立顏色選擇器（防止重複創建）
         function createColorPickers() {
             const textPicker = document.getElementById('textColorPicker');
             const bgPicker = document.getElementById('bgColorPicker');
             
             if (textPicker && bgPicker) {
+                // 清空現有內容，防止重複添加
+                textPicker.innerHTML = '';
+                bgPicker.innerHTML = '';
+                
                 COMMON_COLORS.forEach(color => {
                     // 文字顏色選擇器
                     const textOption = document.createElement('div');

@@ -869,10 +869,11 @@
                 return;
             }
             
-            // 提取房間ID（去掉可能的前綴）
-            roomId = inputRoomId.replace(/^room-/, '');
+            // 使用完整的房間ID進行連接
+            roomId = inputRoomId;
             
             updateConnectionStatus('正在連接...');
+            console.log('嘗試連接到房間ID:', roomId);
             connection = peer.connect(roomId);
             
             connection.on('open', function() {
