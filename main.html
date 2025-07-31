@@ -31,38 +31,9 @@
             justify-content: center;
         }
         
-        /* 行號顯示 */
-        .line-numbers {
-            position: absolute;
-            left: 10px;
-            top: 50%;
-            transform: translateY(-50%);
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 1vh;
-            font-size: 2vh;
-            color: rgba(255, 255, 255, 0.3);
-            font-family: monospace;
-            z-index: 10;
-            line-height: 1.6;
-        }
+        /* 行號顯示已移除 */
         
-        .line-number {
-            padding: 0.2em 0.5em;
-            border-radius: 0.3em;
-            background: rgba(255, 255, 255, 0.05);
-            min-width: 3em;
-            text-align: center;
-            transition: all 0.3s;
-        }
-        
-        .line-number.current {
-            background: rgba(76, 175, 80, 0.3);
-            color: #4CAF50;
-            transform: scale(1.1);
-            box-shadow: 0 0 10px rgba(76, 175, 80, 0.3);
-        }
+        /* 行號樣式已移除 */
         
         .teleprompter-content {
             position: absolute;
@@ -534,8 +505,7 @@
     
     <!-- 主顯示容器 -->
     <div class="teleprompter-container">
-        <!-- 行號顯示 -->
-        <div class="line-numbers" id="lineNumbers"></div>
+        <!-- 行號顯示已移除 -->
         
         <div class="teleprompter-content font-size-5" id="content">歡迎使用智慧提詞機<br>請開啟控制面板設定文稿內容<br><br>快捷鍵：<br>• 空白鍵：播放/暫停<br>• ESC：顯示設定<br>• ↑↓：調整速度<br>• ←→：調整字體</div>
     </div>
@@ -922,6 +892,26 @@
                 case 'request-settings':
                     sendCurrentSettings(conn);
                     break;
+                case 'manual-continue':
+                    // 從控制面板觸發手動繼續
+                    if (message.data.line) {
+                        currentLineIndex = message.data.line - 1;
+                    }
+                    if (!manualMode) {
+                        enterManualMode();
+                    }
+                    continueFromCurrentLine();
+                    break;
+                case 'manual-pause':
+                    // 從控制面板觸發手動暫停
+                    if (manualMode) {
+                        pauseManualMode();
+                    }
+                    break;
+                case 'return-to-auto':
+                    // 從控制面板返回自動模式
+                    returnToAutoMode();
+                    break;
             }
         }
         
@@ -1069,8 +1059,7 @@
                 displayCurrentLine();
             }
             
-            // 更新行號顯示
-            updateLineNumbers();
+            // 行號顯示已移除
             
             // 通知所有連接的設備
             broadcastMessage('stop-state', { reset: true });
@@ -1111,8 +1100,7 @@
             // 重新計算行數並更新
             updateScriptLines();
             
-            // 字體大小改變時需要重新計算行號顯示
-            setTimeout(updateLineNumbers, 100);
+            // 行號顯示已移除
             
             // 通知連接的設備
             broadcastMessage('font-size-change', { fontSize: fontSize });
@@ -1229,8 +1217,7 @@
             // 更新行數顯示
             updateLineDisplays();
             
-            // 更新行號顯示
-            updateLineNumbers();
+            // 行號顯示已移除
             
             // 通知所有連接的設備，發送前100行到控制面板
             const first100Lines = scriptLines.slice(0, 100).join('\n');
@@ -1244,60 +1231,7 @@
             console.log('文稿更新，總共', scriptLines.length, '行，同步前100行到控制面板');
         }
         
-        // 更新行號顯示
-        function updateLineNumbers() {
-            const lineNumbersContainer = document.getElementById('lineNumbers');
-            if (!lineNumbersContainer) {
-                console.warn('找不到行號容器');
-                return;
-            }
-            
-            // 清空現有行號
-            lineNumbersContainer.innerHTML = '';
-            
-            // 如果沒有文稿內容，不顯示行號
-            if (!scriptLines || scriptLines.length === 0) {
-                console.log('無文稿內容，隱藏行號');
-                return;
-            }
-            
-            const totalLines = scriptLines.length;
-            const currentLine = currentLineIndex + 1;
-            
-            console.log('更新行號顯示 - 總行數:', totalLines, '當前行:', currentLine);
-            
-            // 只有在有實際內容時才顯示行號
-            if (totalLines > 0) {
-                // 顯示當前行前後各5行，總共最多11行
-                const displayRange = 5;
-                let startLine = Math.max(1, currentLine - displayRange);
-                let endLine = Math.min(totalLines, currentLine + displayRange);
-                
-                // 確保至少顯示11行（如果總行數足夠）
-                const minDisplayLines = Math.min(11, totalLines);
-                if (endLine - startLine + 1 < minDisplayLines) {
-                    if (startLine === 1) {
-                        endLine = Math.min(totalLines, startLine + minDisplayLines - 1);
-                    } else if (endLine === totalLines) {
-                        startLine = Math.max(1, endLine - minDisplayLines + 1);
-                    }
-                }
-                
-                // 生成行號
-                for (let i = startLine; i <= endLine; i++) {
-                    const lineNumberDiv = document.createElement('div');
-                    lineNumberDiv.className = 'line-number';
-                    lineNumberDiv.textContent = i;
-                    lineNumberDiv.style.opacity = (i === currentLine) ? '1' : '0.5';
-                    lineNumberDiv.style.fontWeight = (i === currentLine) ? 'bold' : 'normal';
-                    lineNumberDiv.style.color = (i === currentLine) ? '#fff' : 'rgba(255, 255, 255, 0.5)';
-                    
-                    lineNumbersContainer.appendChild(lineNumberDiv);
-                }
-                
-                console.log(`行號更新: 顯示 ${startLine}-${endLine}，當前行 ${currentLine}，總行數 ${totalLines}`);
-            }
-        }
+        // 行號顯示功能已完全移除
         
         function jumpToLine(lineNumber) {
             if (lineNumber < 1 || lineNumber > scriptLines.length) {
@@ -1340,8 +1274,7 @@
                 totalLinesDisplay.textContent = scriptLines.length;
             }
             
-            // 同時更新行號顯示
-            updateLineNumbers();
+            // 行號顯示已移除
         }
         
         function previousLine() {
@@ -1404,6 +1337,12 @@
             // 開始自動滾動（但保持在手動模式）
             isPlaying = true;
             updateConnectionStatus();
+            
+            // 更新按鈕狀態
+            const continueBtn = document.getElementById('continueBtn');
+            const pauseBtn = document.getElementById('pauseManualBtn');
+            if (continueBtn) continueBtn.disabled = true;
+            if (pauseBtn) pauseBtn.disabled = false;
             
             const scrollDistance = scrollSpeed * 0.5;
             const intervalTime = Math.max(16, 50 / scrollSpeed);
@@ -1470,7 +1409,14 @@
                 scrollAnimation = null;
             }
             
+            // 更新按鈕狀態
+            const continueBtn = document.getElementById('continueBtn');
+            const pauseBtn = document.getElementById('pauseManualBtn');
+            if (continueBtn) continueBtn.disabled = false;
+            if (pauseBtn) pauseBtn.disabled = true;
+            
             console.log('手動模式暫停');
+            showNotification('⏸️ 手動播放已暫停');
             broadcastMessage('manual-pause', {});
         }
         
