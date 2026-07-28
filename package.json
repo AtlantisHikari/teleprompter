@@ -1,0 +1,12 @@
+{
+  "name": "teleprompter-github-pages",
+  "version": "1.0.0",
+  "description": "智慧提詞機 - 純前端網頁版（GitHub Pages 部署）。無 build 步驟，此 package.json 僅用來裝測試用 devDependency。",
+  "private": true,
+  "scripts": {
+    "test:e2e": "playwright test"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.62.0"
+  }
+}
