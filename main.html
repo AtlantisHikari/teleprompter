@@ -581,7 +581,6 @@
             // 初始化文稿內容
             setTimeout(() => {
                 updateScriptLines();
-                updateLineNumbers();
                 initializeSettings();
             }, 100);
         });
@@ -1465,9 +1464,8 @@
             updatePlaybackModeDisplay();
             disableManualControls();
             updateScriptLines();
-            updateLineNumbers();
             updateLineDisplays();
-            
+
             showNotification('🔄 已回到自動模式');
             broadcastMessage('auto-mode', { enabled: true });
         }
@@ -1718,8 +1716,7 @@
                 
                 // 重新初始化行數統計
                 updateScriptLines();
-                updateLineNumbers();
-                
+
                 // 重置到開始位置，保持當前鏡像模式
                 let finalTransform = 'translateY(100vh)';
                 if (mirrorMode && mirrorMode !== 'none') {

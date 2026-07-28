@@ -4,31 +4,23 @@
 // 2) 主顯示器（main.html）的播放按鈕確實有本地 DOM 反應（isPlaying/捲動位置改變）
 // 3) 控制面板（control.html）在填入房間 ID 前，控制按鈕應為 disabled（未連線保護存在）
 //
-// ⚠️ 撰寫本測試時發現 main.html 有一個既有 bug（兩次重跑皆可重現）：程式碼在三處
-// （約第 584/1468/1721 行）呼叫 `updateLineNumbers()`，但整份檔案裡沒有這個函式的
-// 定義，載入時會丟出 "updateLineNumbers is not defined" 的未捕捉例外。這是應用邏輯
-// 的 bug，依交辦範圍（只能動 tests/ 與 devDependency）不在本次可修範圍，故 main.html
-// 的「無未捕捉例外」子測試用 test.fail() 標記、保留完整訊息供之後修復參考。
+// main.html 原本有一個既有 bug：程式碼在三處（約第 584/1468/1721 行）呼叫
+// `updateLineNumbers()`，但整份檔案裡沒有這個函式的定義（行號顯示功能先前已整個
+// 移除，但呼叫點沒清乾淨），載入時會丟出 "updateLineNumbers is not defined" 的
+// 未捕捉例外。已修好：移除這三處殘留呼叫（該功能的顯示邏輯已由 updateLineDisplays()
+// 取代）。
 const { test, expect } = require('@playwright/test');
 
 const PAGES = [
-  { path: '/index.html', title: '智慧提詞機 - 首頁導航', knownError: null },
-  {
-    path: '/main.html',
-    title: '智慧提詞機 - 主顯示器',
-    knownError: 'updateLineNumbers is not defined（見檔案開頭註解，第 584/1468/1721 行呼叫了未定義的函式）',
-  },
-  { path: '/control.html', title: '智慧提詞機 - 控制面板', knownError: null },
-  { path: '/network.html', title: '智慧提詞機 - 設備連線助手 (GitHub Pages)', knownError: null },
+  { path: '/index.html', title: '智慧提詞機 - 首頁導航' },
+  { path: '/main.html', title: '智慧提詞機 - 主顯示器' },
+  { path: '/control.html', title: '智慧提詞機 - 控制面板' },
+  { path: '/network.html', title: '智慧提詞機 - 設備連線助手 (GitHub Pages)' },
 ];
 
 test.describe('02-github-pages 靜態頁面基本驗證', () => {
-  for (const { path, title, knownError } of PAGES) {
+  for (const { path, title } of PAGES) {
     test(`${path} 可正常載入且無未捕捉例外`, async ({ page }) => {
-      if (knownError) {
-        test.fail(true, `已知 bug: ${knownError}`);
-      }
-
       const pageErrors = [];
       page.on('pageerror', (err) => pageErrors.push(err.message));
 
