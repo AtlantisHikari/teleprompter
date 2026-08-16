@@ -595,8 +595,12 @@
                 '2. 在控制設備開啟控制面板',
                 '3. 輸入主顯示器的 Peer ID 連接',
                 '4. 開始使用 P2P 提詞機功能'
-            ].join('\\n');
-            
+            // 真 bug（已修，本檔內另外 3 處同款 join('\\n') 一併修正）：原本寫成
+            // join('\\n')（雙反斜線字串字面量，與 03-mac-app/renderer/main.html 的
+            // changeFontSize 是同一種 typo），複製到剪貼簿的內容會是字面上的 "\n"
+            // 兩個字元而非真正換行，全部文字擠成一行。改成單反斜線 join('\n')。
+            ].join('\n');
+
             copyToClipboard(urls);
         }
         
@@ -933,7 +937,7 @@
             
             const results = features.map(f => 
                 `${f.support ? '✅' : '❌'} ${f.name}: ${f.support ? '支援' : '不支援'}`
-            ).join('\\n');
+            ).join('\n');
             
             const browserInfo = [
                 '瀏覽器支援檢查結果：',
@@ -944,7 +948,7 @@
                 '• Chrome 80+ 或 Firefox 75+ 獲得最佳體驗',
                 '• 確保啟用JavaScript和WebRTC',
                 '• 如有問題請嘗試重新整理頁面'
-            ].join('\\n');
+            ].join('\n');
             
             // 顯示在彈窗中
             const popup = window.open('', '_blank', 'width=500,height=400,scrollbars=yes');
@@ -1041,7 +1045,7 @@
                 '- HTTPS: ' + (location.protocol === 'https:' ? '✅' : '❌'),
                 '',
                 '時間戳: ' + new Date().toISOString()
-            ].join('\\n');
+            ].join('\n');
             
             const popup = window.open('', '_blank', 'width=600,height=400');
             popup.document.write(`
