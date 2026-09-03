@@ -1066,7 +1066,13 @@
         
         // 設定控制
         function changeSpeed(value) {
-            scrollSpeed = parseFloat(value);
+            // 真 bug（已修）：原本完全不驗證輸入（遠端 speed-change 訊息、損毀設定都能
+            // 送任意值進來）。負值會讓內容往畫面下方飛出且永不停止（捲到底判斷
+            // newY < -height 永遠不成立）、0 會讓 intervalTime = Infinity、NaN 會讓
+            // transform 失效卡死。修法：非有限數值一律忽略，合法值 clamp 到 0.1–5。
+            const parsed = parseFloat(value);
+            if (!Number.isFinite(parsed)) return;
+            scrollSpeed = Math.min(5, Math.max(0.1, parsed));
             document.getElementById('statusSpeed').textContent = scrollSpeed.toFixed(1);
             
             // 更新設定面板中的顯示
@@ -1086,7 +1092,11 @@
         }
         
         function changeFontSize(value) {
-            fontSize = parseInt(value);
+            // 輸入驗證（與 changeSpeed 同一輪修復）：NaN 一律忽略（否則 className 會
+            // 變成 font-size-NaN、之後再也比對不到），合法值 clamp 到 1–10。
+            const parsedFont = parseInt(value, 10);
+            if (!Number.isFinite(parsedFont)) return;
+            fontSize = Math.min(10, Math.max(1, parsedFont));
             content.className = content.className.replace(/font-size-\d+/, `font-size-${fontSize}`);
             document.getElementById('statusFont').textContent = fontSize;
             
@@ -1609,25 +1619,34 @@
             }
         }
         
+        function escapeHtml(str) {
+            return String(str).replace(/[&<>"']/g, (ch) => (
+                { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]
+            ));
+        }
+
         function displayCurrentLine() {
             if (scriptLines.length === 0) return;
-            
+
             // 顯示當前行及前後文
             const contextLines = 3;
             const startIndex = Math.max(0, currentLineIndex - contextLines);
             const endIndex = Math.min(scriptLines.length, currentLineIndex + contextLines + 1);
             
+            // 文稿行要進 innerHTML 前先轉義（真 bug，已修）：原本 ${line} 未轉義直接
+            // 內插，文稿內容含 HTML 時會被當成真實標籤解析（注入），含 < 的普通行也會
+            // 顯示錯誤。
             let displayText = '';
             for (let i = startIndex; i < endIndex; i++) {
                 const line = scriptLines[i];
                 if (i === currentLineIndex) {
-                    displayText += `<span class="current-line-highlight">${line}</span>\n`;
+                    displayText += `<span class="current-line-highlight">${escapeHtml(line)}</span>\n`;
                 } else {
                     const opacity = Math.abs(i - currentLineIndex) <= 1 ? 1 : 0.6;
-                    displayText += `<span style="opacity: ${opacity};">${line}</span>\n`;
+                    displayText += `<span style="opacity: ${opacity};">${escapeHtml(line)}</span>\n`;
                 }
             }
-            
+
             content.innerHTML = displayText;
             
             // 重置滾動位置以確保當前行可見

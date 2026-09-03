@@ -1508,10 +1508,18 @@
         
         // 設定管理
         function loadSettings() {
-            const savedSettings = localStorage.getItem('teleprompter-control-settings');
-            if (savedSettings) {
-                const settings = JSON.parse(savedSettings);
-                Object.assign(currentSettings, settings);
+            // 真 bug（已修）：JSON.parse 原本沒有 try/catch（main.html 的同名函式早就有
+            // 包）——localStorage 損毀時 load handler 直接丟出未捕捉例外，排在後面的
+            // loadScriptHistory() 被跳過。修法：損毀時丟棄該鍵、照常往下走。
+            try {
+                const savedSettings = localStorage.getItem('teleprompter-control-settings');
+                if (savedSettings) {
+                    const settings = JSON.parse(savedSettings);
+                    Object.assign(currentSettings, settings);
+                }
+            } catch (error) {
+                console.error('設定損毀，已重置：', error);
+                localStorage.removeItem('teleprompter-control-settings');
             }
         }
         
