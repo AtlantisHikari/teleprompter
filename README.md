@@ -14,6 +14,8 @@
 ## 🚀 快速開始
 
 ### 線上使用
+Cloudflare Pages：**https://teleprompter-suite.pages.dev/**（主畫面 /main.html、控制面板 /control.html）
+
 直接訪問: [智能提詞機](https://your-username.github.io/teleprompter/)
 
 ### 本地使用
