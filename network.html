@@ -179,7 +179,12 @@
             }
             
             .action-section {
-                grid-template-columns: 1fr;
+                grid-template-columns: minmax(0, 1fr);
+            }
+
+            .action-card {
+                min-width: 0;
+                overflow-wrap: anywhere;
             }
         }
         
