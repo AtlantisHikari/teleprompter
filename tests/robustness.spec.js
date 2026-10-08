@@ -67,3 +67,23 @@ test.describe('02-github-pages 強韌性', () => {
     await ctx.close();
   });
 });
+
+// B2 部署前資安檢驗：非行模式下，遠端送來的文稿含 HTML 也不得被當成標籤執行
+test.describe('02-github-pages 部署前資安（B2）', () => {
+  test('一般模式：文稿含 <img onerror> 不得產生 img 元素或執行腳本', async ({ page }) => {
+    await page.goto('/main.html');
+    await page.evaluate(() => updateScript('<img src=x onerror="window.__xss=1">\n<b>粗體</b>'));
+    await page.waitForTimeout(300);
+    expect(await page.evaluate(() => window.__xss || 0)).toBe(0);
+    expect(await page.locator('#content img, #content b').count()).toBe(0);
+    expect(await page.evaluate(() => content.textContent)).toContain('<img src=x');
+  });
+
+  test('PeerJS 已本地化，頁面不載入任何外部腳本', async ({ page }) => {
+    for (const p of ['/index.html', '/main.html', '/control.html', '/network.html']) {
+      await page.goto(p);
+      const srcs = await page.evaluate(() => [...document.scripts].map((s) => s.getAttribute('src')).filter(Boolean));
+      for (const s of srcs) expect(s.startsWith('http')).toBe(false);
+    }
+  });
+});

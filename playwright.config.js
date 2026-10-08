@@ -4,7 +4,7 @@
 // 對應的 relay 伺服器可跑，AGENTS.md 已註明架構是純前端 WebRTC）。
 const { defineConfig } = require('@playwright/test');
 
-const TEST_PORT = 8093;
+const TEST_PORT = 10130;
 
 module.exports = defineConfig({
   testDir: './tests',

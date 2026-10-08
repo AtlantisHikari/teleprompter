@@ -87,3 +87,8 @@ MIT License - 可自由使用、修改和分發
 ---
 
 **享受專業的提詞機體驗！** 🎬✨
+## 部署（Cloudflare Pages）
+- 預定網址：https://teleprompter-miku.pages.dev
+- 指令：`bash scripts/deploy.sh`（先 `DRY_RUN=1 bash scripts/deploy.sh` 只建 `.deploy/` 並檢查）
+- 純靜態、無 build；PeerJS 已本地化於 `vendor/peerjs.min.js`（v1.4.7）。`_headers` 內含 CSP，connect-src 只放行 `0.peerjs.com`（配對訊號）。
+- 隱私：文稿走 WebRTC 點對點；配對時使用公開 PeerJS 雲端與公開 STUN 伺服器。

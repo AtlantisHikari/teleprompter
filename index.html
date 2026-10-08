@@ -3,6 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="智慧提詞機：純網頁、免安裝的提詞機，可用手機或另一台電腦即時遙控播放、速度與字級。">
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 100 100%27%3E%3Ctext y=%27.9em%27 font-size=%2790%27%3E%F0%9F%8E%AC%3C/text%3E%3C/svg%3E">
     <title>智慧提詞機 - 首頁導航</title>
     <style>
         * {
@@ -202,6 +204,7 @@
             </a>
         </div>
         
+        <p style="margin-top:24px;font-size:13px;opacity:.75;line-height:1.6;">使用方式：先在電腦或平板開啟「主顯示器」，再用手機開啟「控制面板」輸入房間 ID 即可遙控。<br>隱私說明：文稿只在兩台裝置之間以 WebRTC 點對點傳送，不會上傳到本站；連線配對時會透過公開的 PeerJS 雲端（0.peerjs.com）交換連線資訊，並使用 Google 等公開 STUN 伺服器探測網路位址。</p>
         <!-- 功能特色 -->
         <div class="features">
             <h2 class="features-title">✨ 主要功能特色</h2>
@@ -320,7 +323,7 @@
         });
     </script>
     
-    <!-- PeerJS CDN -->
-    <script src="https://unpkg.com/peerjs@1.4.7/dist/peerjs.min.js"></script>
+    <!-- PeerJS（本地化 v1.4.7）-->
+    <script src="vendor/peerjs.min.js"></script>
 </body>
 </html>

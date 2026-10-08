@@ -3,6 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="智慧提詞機主顯示器：顯示文稿並由其他裝置遠端控制。">
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 100 100%27%3E%3Ctext y=%27.9em%27 font-size=%2790%27%3E%F0%9F%8E%AC%3C/text%3E%3C/svg%3E">
     <title>智慧提詞機 - 主顯示器</title>
     <style>
         * {
@@ -1208,7 +1210,9 @@
             let scriptText = '';
             if (content.innerHTML.includes('<br>')) {
                 // 如果包含<br>標籤，將其轉換為換行符
-                scriptText = content.innerHTML.replace(/<br\s*\/?>/gi, '\n').replace(/<[^>]*>/g, '');
+                const tmp = content.cloneNode(true);
+                tmp.querySelectorAll('br').forEach(br => br.replaceWith('\n'));
+                scriptText = tmp.textContent || '';
             } else {
                 // 否則直接使用textContent
                 scriptText = content.textContent || content.innerText || '';
@@ -1445,7 +1449,7 @@
             if (content) {
                 const scriptContent = document.getElementById('scriptEditor').value;
                 if (scriptContent.trim()) {
-                    content.innerHTML = scriptContent.replace(/\n/g, '<br>');
+                    content.innerHTML = escapeHtml(scriptContent).replace(/\n/g, '<br>');
                 } else {
                     content.innerHTML = '歡迎使用智慧提詞機<br>請開啟控制面板設定文稿內容<br><br>快捷鍵：<br>• 空白鍵：播放/暫停<br>• ESC：顯示設定<br>• ↑↓：調整速度<br>• ←→：調整字體';
                 }
@@ -1584,11 +1588,11 @@
             
             historyContainer.innerHTML = history.map(script => `
                 <div class="script-item">
-                    <div class="script-preview">${script.preview}</div>
-                    <div class="script-timestamp">${script.timestamp}</div>
+                    <div class="script-preview">${escapeHtml(script.preview)}</div>
+                    <div class="script-timestamp">${escapeHtml(script.timestamp)}</div>
                     <div class="script-actions">
-                        <button onclick="loadScript(${script.id})" class="btn-small">載入</button>
-                        <button onclick="deleteScript(${script.id})" class="btn-small delete-btn">刪除</button>
+                        <button onclick="loadScript(${Number(script.id)})" class="btn-small">載入</button>
+                        <button onclick="deleteScript(${Number(script.id)})" class="btn-small delete-btn">刪除</button>
                     </div>
                 </div>
             `).join('');
@@ -1731,7 +1735,7 @@
                 console.log('應用文稿:', scriptContent.substring(0, 100) + '...');
                 
                 // 更新主顯示內容
-                content.innerHTML = scriptContent.replace(/\n/g, '<br>');
+                content.innerHTML = escapeHtml(scriptContent).replace(/\n/g, '<br>');
                 
                 // 重新初始化行數統計
                 updateScriptLines();
@@ -2054,6 +2058,6 @@
     </script>
     
     <!-- PeerJS CDN -->
-    <script src="https://unpkg.com/peerjs@1.4.7/dist/peerjs.min.js"></script>
+    <script src="vendor/peerjs.min.js"></script>
 </body>
 </html>
