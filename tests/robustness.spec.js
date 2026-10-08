@@ -87,3 +87,52 @@ test.describe('02-github-pages 部署前資安（B2）', () => {
     }
   });
 });
+
+// ---- 2026-10-09 polish ----
+test.describe('02-github-pages 收訊安全與觸控目標', () => {
+  test('control.html 收到 null／格式錯誤訊息安全忽略、不崩潰', async ({ page }) => {
+    const errs = [];
+    page.on('pageerror', (e) => errs.push(e.message));
+    await page.goto('/control.html');
+    await page.evaluate(() => {
+      const bad = [null, undefined, 'x', 42, [], {}, { type: 123 }, { type: 'settings-sync' }, { type: 'settings-sync', data: null },
+        { type: 'settings-sync', data: 'str' }, { type: 'settings-sync', data: { scrollSpeed: 'fast', fontSize: {}, totalLines: 'x', textColor: 5 } },
+        { type: 'total-lines' }, { type: 'total-lines', data: null }, { type: 'script-content', data: null },
+        { type: 'script-content', data: { script: 123, totalLines: 'a' } }, { type: 'current-line-update' },
+        { type: 'current-line-update', data: { currentLine: 'a', totalLines: null } }];
+      for (const m of bad) handleMessage(m);
+    });
+    expect(errs).toEqual([]);
+  });
+
+  test('main.html 欄位型別錯誤的訊息不污染狀態、不崩潰', async ({ page }) => {
+    const errs = [];
+    page.on('pageerror', (e) => errs.push(e.message));
+    await page.goto('/main.html');
+    const out = await page.evaluate(() => {
+      const before = document.getElementById('content').textContent;
+      for (const m of [{ type: 'script-update', data: {} }, { type: 'script-update', data: { script: 123 } },
+        { type: 'color-change', data: { textColor: 5, backgroundColor: {} } }, { type: 'mirror-change', data: { mirrorMode: {} } },
+        { type: 'jump-to-line', data: { line: 'abc' } }, { type: 'jump-to-line', data: {} }, null, 'x']) handleMessage(m, null);
+      return { same: document.getElementById('content').textContent === before };
+    });
+    expect(out.same).toBe(true);
+    expect(errs).toEqual([]);
+  });
+
+  for (const w of [375, 1440]) {
+    test(`control.html 按鈕觸控目標皆 ≥44px @${w}`, async ({ page }) => {
+      await page.setViewportSize({ width: w, height: 900 });
+      await page.addInitScript(() => {
+        localStorage.setItem('teleprompter-scripts', JSON.stringify([{ id: 'a1', name: 'N', content: 'hello', updatedAt: Date.now() }]));
+      });
+      await page.goto('/control.html');
+      const small = await page.evaluate(() => [...document.querySelectorAll('button')].map((e) => {
+        const r = e.getBoundingClientRect(); return { t: (e.textContent || e.className).trim().slice(0, 12), w: Math.round(r.width), h: Math.round(r.height) };
+      }).filter((x) => x.w > 0 && (x.w < 44 || x.h < 44)));
+      expect(small).toEqual([]);
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
+      if (process.env.SHOT_DIR) await page.screenshot({ path: `${process.env.SHOT_DIR}/control-${w}.png` });
+    });
+  }
+});

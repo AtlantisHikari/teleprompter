@@ -879,17 +879,17 @@
                     changeFontSize(message.data.fontSize);
                     break;
                 case 'color-change':
-                    if (message.data.textColor) setTextColor(message.data.textColor);
-                    if (message.data.backgroundColor) setBackgroundColor(message.data.backgroundColor);
+                    if (typeof message.data.textColor === 'string' && message.data.textColor) setTextColor(message.data.textColor);
+                    if (typeof message.data.backgroundColor === 'string' && message.data.backgroundColor) setBackgroundColor(message.data.backgroundColor);
                     break;
                 case 'mirror-change':
-                    setMirror(message.data.mirrorMode);
+                    if (typeof message.data.mirrorMode === 'string') setMirror(message.data.mirrorMode);
                     break;
                 case 'script-update':
-                    updateScript(message.data.script);
+                    if (typeof message.data.script === 'string') updateScript(message.data.script);
                     break;
                 case 'jump-to-line':
-                    jumpToLine(message.data.line);
+                    if (Number.isFinite(Number(message.data.line))) jumpToLine(Number(message.data.line));
                     break;
                 case 'previous-line':
                     previousLine();

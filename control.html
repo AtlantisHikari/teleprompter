@@ -70,6 +70,8 @@
         }
         
         .connect-btn {
+            min-height: 44px;
+            min-width: 44px;
             padding: 12px 20px;
             background: #4CAF50;
             border: none;
@@ -408,6 +410,8 @@
         }
         
         .script-actions button {
+            min-height: 44px;
+            min-width: 44px;
             padding: 4px 8px;
             background: rgba(255, 255, 255, 0.2);
             border: none;
@@ -953,6 +957,11 @@
         // 處理來自主顯示器的訊息
         function handleMessage(message) {
             console.log('收到訊息:', message);
+            // 收到 null／非物件／缺 type／data 格式錯誤的訊息一律安全忽略，不可拋例外
+            if (!message || typeof message !== 'object' || typeof message.type !== 'string') return;
+            const data = (message.data && typeof message.data === 'object') ? message.data : {};
+            message = { type: message.type, data: data };
+            const isNum = (v) => typeof v === 'number' && Number.isFinite(v);
             
             switch (message.type) {
                 case 'settings-response':
@@ -960,19 +969,20 @@
                     syncSettings(message.data);
                     break;
                 case 'total-lines':
-                    updateTotalLines(message.data.totalLines);
+                    if (isNum(message.data.totalLines)) updateTotalLines(message.data.totalLines);
                     break;
                 case 'script-content':
                     // 同步文稿內容到控制面板（前100行）
-                    if (message.data.script) {
+                    if (typeof message.data.script === 'string' && message.data.script) {
                         document.getElementById('scriptEditor').value = message.data.script;
                         console.log('已同步前100行文稿到控制面板');
                     }
-                    if (message.data.totalLines) {
+                    if (isNum(message.data.totalLines) && message.data.totalLines) {
                         updateTotalLines(message.data.totalLines);
                     }
                     break;
                 case 'current-line-update':
+                    if (!isNum(message.data.currentLine) || !isNum(message.data.totalLines)) break;
                     currentLine = message.data.currentLine;
                     totalLines = message.data.totalLines;
                     updateCurrentLineDisplay();
@@ -983,40 +993,41 @@
         // 同步設定
         function syncSettings(settings) {
             console.log('收到主顯示器設定同步:', settings);
+            if (!settings || typeof settings !== 'object') return;
             
-            if (settings.textColor) {
+            if (typeof settings.textColor === 'string' && settings.textColor) {
                 currentSettings.textColor = settings.textColor;
                 console.log('同步文字顏色:', settings.textColor);
                 // 確保顏色選擇器已經創建後再更新選中狀態
                 setTimeout(() => updateColorSelection('textColorPicker', settings.textColor), 200);
             }
-            if (settings.backgroundColor) {
+            if (typeof settings.backgroundColor === 'string' && settings.backgroundColor) {
                 currentSettings.backgroundColor = settings.backgroundColor;
                 console.log('同步背景顏色:', settings.backgroundColor);
                 // 確保顏色選擇器已經創建後再更新選中狀態
                 setTimeout(() => updateColorSelection('bgColorPicker', settings.backgroundColor), 200);
             }
-            if (settings.fontSize) {
+            if (Number.isFinite(settings.fontSize) && settings.fontSize) {
                 currentSettings.fontSize = settings.fontSize;
                 document.getElementById('fontSlider').value = settings.fontSize;
                 document.getElementById('fontValue').textContent = settings.fontSize + '/10';
             }
-            if (settings.scrollSpeed) {
+            if (Number.isFinite(settings.scrollSpeed) && settings.scrollSpeed) {
                 currentSettings.speed = settings.scrollSpeed;
                 document.getElementById('speedSlider').value = settings.scrollSpeed;
                 document.getElementById('speedValue').textContent = settings.scrollSpeed.toFixed(1);
             }
-            if (settings.mirrorMode) {
+            if (typeof settings.mirrorMode === 'string' && settings.mirrorMode) {
                 currentSettings.mirrorMode = settings.mirrorMode;
                 updateMirrorButtons(settings.mirrorMode);
             }
-            if (settings.script) {
+            if (typeof settings.script === 'string' && settings.script) {
                 document.getElementById('scriptEditor').value = settings.script;
             }
-            if (settings.totalLines) {
+            if (Number.isFinite(settings.totalLines) && settings.totalLines) {
                 totalLines = settings.totalLines;
             }
-            if (settings.currentLine) {
+            if (Number.isFinite(settings.currentLine) && settings.currentLine) {
                 currentLine = settings.currentLine;
             }
             
