@@ -495,7 +495,7 @@
         <!-- 房間連接 -->
         <div class="room-section">
             <div class="room-input-group">
-                <input type="text" id="roomIdInput" class="room-input" placeholder="輸入房間ID連接到主顯示器">
+                <input type="text" id="roomIdInput" class="room-input" placeholder="輸入房間ID連接到主顯示器" maxlength="64">
                 <button id="connectBtn" class="connect-btn" onclick="connectToRoom()">連接</button>
             </div>
             <div class="connection-status">
@@ -810,7 +810,7 @@
                 peer.on('open', function(id) {
                     console.log('✅ 控制面板PeerJS連線成功，ID:', id);
                     reconnectAttempts = 0; // 成功連接後重置重連計數器
-                    updateConnectionStatus('🟢 已連線，等待連接到主顯示器...');
+                    updateConnectionStatus('🟢 已連上伺服器，正在等待主顯示器…（請輸入主顯示器的房間 ID 後按「連接」）');
                     showNotification('✅ 控制面板已上線，可以連接到主顯示器');
                 });
 

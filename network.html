@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description" content="智慧提詞機設備連線助手：協助兩台裝置建立連線並診斷網路。">
     <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 100 100%27%3E%3Ctext y=%27.9em%27 font-size=%2790%27%3E%F0%9F%8E%AC%3C/text%3E%3C/svg%3E">
-    <title>智慧提詞機 - 設備連線助手 (GitHub Pages)</title>
+    <title>智慧提詞機 - 設備連線助手</title>
     <style>
         * {
             margin: 0;
@@ -421,7 +421,7 @@
         <!-- 標題 -->
         <div class="header">
             <h1 class="title">🔗 設備連線助手</h1>
-            <p class="subtitle">GitHub Pages 版本 - P2P 點對點連接</p>
+            <p class="subtitle">P2P 點對點連接</p>
         </div>
         
         <!-- P2P 連接資訊 -->
@@ -438,7 +438,7 @@
                 </div>
                 <div class="info-item">
                     <div class="info-label">主頁面網址</div>
-                    <div class="info-value">atlantishikari.github.io</div>
+                    <div class="info-value" id="siteHost">-</div>
                 </div>
                 <div class="info-item">
                     <div class="info-label">服務狀態</div>
@@ -454,7 +454,7 @@
                 <div class="action-title">
                     🌐 快速連結
                 </div>
-                <p style="margin-bottom: 15px; opacity: 0.9;">GitHub Pages 版本連結</p>
+                <p style="margin-bottom: 15px; opacity: 0.9;">本站連結</p>
                 
                 <button class="action-btn" onclick="openMainDisplay()">
                     📺 開啟主顯示器
@@ -471,16 +471,16 @@
                     <div class="connection-item">
                         <div>
                             <div><strong>主顯示器</strong></div>
-                            <div style="font-size: 12px; opacity: 0.8;">https://atlantishikari.github.io/teleprompter/main.html</div>
+                            <div style="font-size: 12px; opacity: 0.8;" data-page-url="main.html"></div>
                         </div>
-                        <button class="copy-btn" onclick="copyToClipboard('https://atlantishikari.github.io/teleprompter/main.html')">複製</button>
+                        <button class="copy-btn" onclick="copyToClipboard(pageUrl('main.html'))">複製</button>
                     </div>
                     <div class="connection-item">
                         <div>
                             <div><strong>控制面板</strong></div>
-                            <div style="font-size: 12px; opacity: 0.8;">https://atlantishikari.github.io/teleprompter/control.html</div>
+                            <div style="font-size: 12px; opacity: 0.8;" data-page-url="control.html"></div>
                         </div>
-                        <button class="copy-btn" onclick="copyToClipboard('https://atlantishikari.github.io/teleprompter/control.html')">複製</button>
+                        <button class="copy-btn" onclick="copyToClipboard(pageUrl('control.html'))">複製</button>
                     </div>
                 </div>
             </div>
@@ -495,7 +495,7 @@
                 <div style="text-align: left; line-height: 1.6;">
                     <div>✅ <strong>無需服務器</strong> - 直接設備對設備連接</div>
                     <div>✅ <strong>全球連接</strong> - 支援網際網路跨地區連接</div>
-                    <div>✅ <strong>零成本部署</strong> - 完全免費的 GitHub Pages</div>
+                    <div>✅ <strong>零成本部署</strong> - 靜態網頁，無需自架伺服器</div>
                     <div>✅ <strong>安全連接</strong> - HTTPS 加密傳輸</div>
                     <div>✅ <strong>即時同步</strong> - 毫秒級響應速度</div>
                 </div>
@@ -508,7 +508,7 @@
         
         <!-- 使用說明 -->
         <div class="instructions fade-in">
-            <h2 style="margin-bottom: 25px; text-align: center;">📖 GitHub Pages 使用說明</h2>
+            <h2 style="margin-bottom: 25px; text-align: center;">📖 使用說明</h2>
             
             <div class="instruction-step">
                 <div class="step-number">1</div>
@@ -588,11 +588,11 @@
         // 複製所有連結
         function copyUrls() {
             const urls = [
-                '智慧提詞機 GitHub Pages 版本：',
+                '智慧提詞機：',
                 '',
-                '📺 主顯示器: https://atlantishikari.github.io/teleprompter/main.html',
-                '🎮 控制面板: https://atlantishikari.github.io/teleprompter/control.html',
-                '🔗 連線助手: https://atlantishikari.github.io/teleprompter/network.html',
+                '📺 主顯示器: ' + pageUrl('main.html'),
+                '🎮 控制面板: ' + pageUrl('control.html'),
+                '🔗 連線助手: ' + pageUrl('network.html'),
                 '',
                 '使用說明：',
                 '1. 在大螢幕開啟主顯示器',
@@ -759,9 +759,9 @@
             const manualHtml = `
                 <div class="manual-connection">
                     <h3>🎯 手動連接</h3>
-                    <p>如果您知道主顯示器的Peer ID，請直接輸入：</p>
+                    <p>如果您知道主顯示器的Peer ID，請直接輸入（僅限英數字、底線與連字號，最長 64 字元）：</p>
                     <div class="manual-input-group">
-                        <input type="text" id="manualPeerIdInput" placeholder="輸入Peer ID (例如: main-abc123)" 
+                        <input type="text" id="manualPeerIdInput" placeholder="輸入Peer ID (例如: main-abc123)" maxlength="64" 
                                class="manual-input">
                         <button onclick="connectToManualPeer()" class="connect-btn">
                             🔗 連接
@@ -797,6 +797,18 @@
             connectToPeer(peerId);
         }
         
+        // 以目前網址動態組出同站頁面連結（不寫死網域）
+        function pageUrl(file) {
+            return new URL(file, location.href).href;
+        }
+        document.addEventListener('DOMContentLoaded', function () {
+            const h = document.getElementById('siteHost');
+            if (h) h.textContent = location.host;
+            document.querySelectorAll('[data-page-url]').forEach(function (el) {
+                el.textContent = pageUrl(el.getAttribute('data-page-url'));
+            });
+        });
+
         function escapeHtml(str) {
             return String(str).replace(/[&<>"']/g, (ch) => (
                 { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]
@@ -899,7 +911,7 @@
             const successHtml = `
                 <div class="connection-success">
                     <h3>🎉 連接成功！</h3>
-                    <p>已連接到主顯示器: ${peerId}</p>
+                    <p>已連接到主顯示器: ${escapeHtml(peerId)}</p>
                     <div class="success-actions">
                         <button onclick="openControlPanel()" class="action-btn">
                             🎮 開啟控制面板
@@ -990,18 +1002,16 @@
         function exportSettings() {
             const settings = {
                 timestamp: new Date().toISOString(),
-                platform: 'GitHub Pages (P2P)',
+                platform: 'Static web (P2P)',
                 version: '2.0.0',
                 deployment: {
-                    type: 'Static GitHub Pages',
-                    repository: 'AtlantisHikari/teleprompter',
-                    branch: 'main',
-                    path: '02-github-pages'
+                    type: 'Static site',
+                    origin: location.origin
                 },
                 urls: {
-                    main: 'https://atlantishikari.github.io/teleprompter/main.html',
-                    control: 'https://atlantishikari.github.io/teleprompter/control.html',
-                    network: 'https://atlantishikari.github.io/teleprompter/network.html'
+                    main: pageUrl('main.html'),
+                    control: pageUrl('control.html'),
+                    network: pageUrl('network.html')
                 },
                 features: {
                     p2p_connection: true,
@@ -1041,12 +1051,12 @@
         // 顯示除錯資訊
         function showDebugInfo() {
             const debugInfo = [
-                '=== GitHub Pages 除錯資訊 ===',
+                '=== 除錯資訊 ===',
                 '',
                 '平台資訊:',
-                '- 部署方式: GitHub Pages (靜態)',
+                '- 部署方式: 靜態網站',
                 '- 連接技術: PeerJS (P2P)',
-                '- 網域: atlantishikari.github.io',
+                '- 網域: ' + location.host,
                 '',
                 '瀏覽器資訊:',
                 '- User Agent: ' + navigator.userAgent,
@@ -1064,7 +1074,7 @@
             const popup = window.open('', '_blank', 'width=600,height=400');
             popup.document.write(`
                 <html>
-                <head><title>GitHub Pages 除錯資訊</title></head>
+                <head><title>除錯資訊</title></head>
                 <body style="font-family: monospace; white-space: pre-wrap; padding: 20px; background: #1e1e1e; color: #fff;">
                     ${escapeHtml(debugInfo)}
                     <br><br>

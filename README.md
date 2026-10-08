@@ -40,7 +40,7 @@
 
 - **前端**: 純 HTML5 + CSS3 + JavaScript
 - **通信**: WebRTC P2P 連接 (使用 PeerJS)
-- **部署**: GitHub Pages 靜態託管
+- **部署**: 靜態託管（現行網址 https://teleprompter-miku.pages.dev；歷史上曾用 GitHub Pages，舊網址 atlantishikari.github.io 已不再使用）
 - **相容性**: 支援所有現代瀏覽器
 
 ## 🌐 跨裝置連接

@@ -15,7 +15,7 @@ const PAGES = [
   { path: '/index.html', title: '智慧提詞機 - 首頁導航' },
   { path: '/main.html', title: '智慧提詞機 - 主顯示器' },
   { path: '/control.html', title: '智慧提詞機 - 控制面板' },
-  { path: '/network.html', title: '智慧提詞機 - 設備連線助手 (GitHub Pages)' },
+  { path: '/network.html', title: '智慧提詞機 - 設備連線助手' },
 ];
 
 test.describe('02-github-pages 靜態頁面基本驗證', () => {

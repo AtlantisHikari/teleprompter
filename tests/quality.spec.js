@@ -156,3 +156,32 @@ test.describe('D. 版面可用性（響應式）', () => {
     }
   });
 });
+
+test.describe('b2 修正：網址動態與訊息驗證', () => {
+  test('network.html 不含寫死舊網域，連結以 location.origin 組成', async ({ page, baseURL }) => {
+    const html = await (await page.request.get('/network.html')).text();
+    expect(html).not.toContain('atlantishikari.github.io');
+    await page.goto('/network.html');
+    const urls = await page.locator('[data-page-url]').allTextContents();
+    expect(urls.length).toBeGreaterThan(0);
+    for (const u of urls) expect(u.startsWith(baseURL + '/')).toBe(true);
+    expect(await page.evaluate(() => pageUrl('main.html'))).toBe(baseURL + '/main.html');
+  });
+
+  test('main.html 缺 data 或結構錯誤的遠端訊息不報錯', async ({ page }) => {
+    const errs = [];
+    page.on('pageerror', (e) => errs.push(e.message));
+    await page.goto('/main.html');
+    await page.evaluate(() => {
+      for (const m of [{ type: 'speed-change' }, { type: 'color-change' }, { type: 'font-change', data: null },
+        { type: 'manual-continue' }, null, 'x', {}]) handleMessage(m, null);
+    });
+    expect(errs).toEqual([]);
+  });
+
+  test('showConnectionSuccess 會跳脫 peerId', async ({ page }) => {
+    await page.goto('/network.html');
+    await page.evaluate(() => showConnectionSuccess('<img src=x onerror=window.__xss=1>'));
+    expect(await page.evaluate(() => window.__xss)).toBeUndefined();
+  });
+});
